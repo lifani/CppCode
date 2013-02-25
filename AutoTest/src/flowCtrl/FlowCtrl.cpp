@@ -11,7 +11,7 @@ CFlowCtrl* CFlowCtrl::m_pFlowCtrl = NULL;
 CFlowCtrl::CFlowCtrl(void)
 {
     m_pVThreadTag = new vector<ThreadTag>;
-    m_pTrack = new vector<string>;
+    m_pTrack = new vector<ThreadTag>;
 }
 
 CFlowCtrl::~CFlowCtrl(void)
@@ -101,6 +101,9 @@ bool CFlowCtrl::StartTest( const string& strIn, vector<TestElement>& vTestElemen
         return false;
     }
 
+    // 使用完毕后清理
+    m_pTrack->clear();
+
     // 执行测试
 
     return true;
@@ -115,61 +118,62 @@ bool CFlowCtrl::CreateTestPath( vector<TestElement>& vTestElement )
 {
     // Clear
     m_pVThreadTag->clear();
+    m_pTrack->clear();
 
-    vector<TestTag> vTestTag;
+    vector<ThreadTag> vThreadTag;
 
     vector<TestElement>::iterator itrEle = vTestElement.begin();
     for (; itrEle != vTestElement.end(); ++itrEle)
     {
-        vTestTag.clear();
-    
+        vThreadTag.clear();
+
         vector<TestAtom>::iterator itrAtom = itrEle->vTestAtom.begin();
         for (; itrAtom != itrEle->vTestAtom.end(); ++itrAtom)
         {
-            TestTag testTag;
-            
-            testTag.nTestResult = 0;
-            testTag.strTestPath = "$" + itrAtom->name;
-
-            vTestTag.push_back(testTag);
+            PushBackVTestTag(*itrAtom, vThreadTag);
         }
 
-        PushBackVTestTag(vTestTag);
+        m_pTrack->clear();
+
+        m_pTrack->insert(m_pTrack->end(), vThreadTag.begin(), vThreadTag.end());
+        m_pVThreadTag->insert(m_pVThreadTag->end(), vThreadTag.begin(), vThreadTag.end());
     }
 
     return true;
 }
 
-void CFlowCtrl::PushBackVTestTag( vector<TestTag>& vTestTag )
+void CFlowCtrl::PushBackVTestTag( TestAtom& tAtom, vector<ThreadTag>& vThreadTag )
 {
     ThreadTag threadTag;
+    threadTag.bRunning = false;
+    threadTag.name = tAtom.name;
 
-    if (m_pVThreadTag->empty())
+    if (m_pTrack->empty())
     {
-        threadTag.vTestTag = vTestTag;
+        TestTag tTag;
+        tTag.nTestResult = 0;
+        tTag.strTestPath = "$" + tAtom.name;
+
+        threadTag.vTestTag.push_back(tTag);
     }
     else
     {
-        ThreadTag& tTag =  m_pVThreadTag->back();
-
-        vector<TestTag>::iterator itrTag = vTestTag.begin();
-        for (; itrTag != vTestTag.end(); ++itrTag)
+        vector<ThreadTag>::iterator itr = m_pTrack->begin();
+        for (; itr != m_pTrack->end(); ++itr)
         {
-            vector<TestTag>::iterator itr = tTag.vTestTag.begin();
-            for (; itr != tTag.vTestTag.end(); ++itr)
+            vector<TestTag>::iterator it = itr->vTestTag.begin();
+            for (; it != itr->vTestTag.end(); ++it)
             {
-                TestTag tag;
+                TestTag tTag;
+                tTag.nTestResult = 0;
+                tTag.strTestPath = it->strTestPath + "$" + tAtom.name;
 
-                tag.nTestResult = 0;
-                tag.strTestPath = itr->strTestPath + itrTag->strTestPath;
-
-                threadTag.vTestTag.push_back(tag);
+                threadTag.vTestTag.push_back(tTag);
             }
         }
     }
 
-    threadTag.bRunning = false;
-    m_pVThreadTag->push_back(threadTag);
+    vThreadTag.push_back(threadTag);
 }
 
 string CFlowCtrl::GetAppPath()

@@ -52,7 +52,7 @@ private:
 
     bool CreateTestPath(vector<TestElement>& vTestElement);
 
-    void PushBackVTestTag(vector<TestTag>& vTestTag);
+    void PushBackVTestTag(TestAtom& tAtom, vector<ThreadTag>& vThreadTag);
 
     bool NeedExecute(TestTag& testTag);
 
@@ -65,7 +65,7 @@ private:
 
     vector<ThreadTag>* m_pVThreadTag;
 
-    vector<string>* m_pTrack;
+    vector<ThreadTag>* m_pTrack;
 
     // 软件运行路径
     string m_strAppPath;
