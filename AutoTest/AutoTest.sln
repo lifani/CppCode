@@ -5,6 +5,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xml", "src\xml\xml.vcproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestMain", "src\TestMain\TestMain.vcproj", "{A36B9C7A-D5E3-46F3-BB09-267212FB2B88}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flowCtrl", "src\flowCtrl\flowCtrl.vcproj", "{00A38D92-AE81-478E-8BBE-9EAFB44F8793}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolBox", "src\ToolBox\ToolBox.vcproj", "{C617A6F6-C099-42D2-B62C-37399A9807B1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestDllBox", "src\TestDllBox\TestDllBox.vcproj", "{F087D948-4682-457E-8416-B8FA2D5176E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +25,18 @@ Global
 		{A36B9C7A-D5E3-46F3-BB09-267212FB2B88}.Debug|Win32.Build.0 = Debug|Win32
 		{A36B9C7A-D5E3-46F3-BB09-267212FB2B88}.Release|Win32.ActiveCfg = Release|Win32
 		{A36B9C7A-D5E3-46F3-BB09-267212FB2B88}.Release|Win32.Build.0 = Release|Win32
+		{00A38D92-AE81-478E-8BBE-9EAFB44F8793}.Debug|Win32.ActiveCfg = Debug|Win32
+		{00A38D92-AE81-478E-8BBE-9EAFB44F8793}.Debug|Win32.Build.0 = Debug|Win32
+		{00A38D92-AE81-478E-8BBE-9EAFB44F8793}.Release|Win32.ActiveCfg = Release|Win32
+		{00A38D92-AE81-478E-8BBE-9EAFB44F8793}.Release|Win32.Build.0 = Release|Win32
+		{C617A6F6-C099-42D2-B62C-37399A9807B1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C617A6F6-C099-42D2-B62C-37399A9807B1}.Debug|Win32.Build.0 = Debug|Win32
+		{C617A6F6-C099-42D2-B62C-37399A9807B1}.Release|Win32.ActiveCfg = Release|Win32
+		{C617A6F6-C099-42D2-B62C-37399A9807B1}.Release|Win32.Build.0 = Release|Win32
+		{F087D948-4682-457E-8416-B8FA2D5176E2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F087D948-4682-457E-8416-B8FA2D5176E2}.Debug|Win32.Build.0 = Debug|Win32
+		{F087D948-4682-457E-8416-B8FA2D5176E2}.Release|Win32.ActiveCfg = Release|Win32
+		{F087D948-4682-457E-8416-B8FA2D5176E2}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

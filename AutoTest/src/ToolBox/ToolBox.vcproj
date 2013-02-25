@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="xml"
-	ProjectGUID="{FFE9099A-9727-435E-95C6-959916D95803}"
-	RootNamespace="xml"
+	Name="ToolBox"
+	ProjectGUID="{C617A6F6-C099-42D2-B62C-37399A9807B1}"
+	RootNamespace="ToolBox"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;TOOLBOX_EXPORTS;DLL_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -114,7 +114,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;XML_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;TOOLBOX_EXPORTS"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -171,23 +171,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\third\tinyxml\tinystr.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\third\tinyxml\tinyxml.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\third\tinyxml\tinyxmlerror.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\third\tinyxml\tinyxmlparser.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\xml.cpp"
+				RelativePath=".\toolBox.cpp"
 				>
 			</File>
 		</Filter>
@@ -197,19 +181,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\third\tinyxml\tinystr.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\third\tinyxml\tinyxml.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\include\typedef.h"
-				>
-			</File>
-			<File
-				RelativePath=".\xml.h"
+				RelativePath=".\toolBox.h"
 				>
 			</File>
 		</Filter>

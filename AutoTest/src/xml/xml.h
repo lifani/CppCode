@@ -10,7 +10,7 @@
 #include "../../third/tinyxml/tinystr.h"
 #include "../../include/typedef.h"
 
-class AUTOTEST_API CXml
+class DLL_API CXml
 {
 public:
     CXml();

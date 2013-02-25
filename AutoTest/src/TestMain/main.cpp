@@ -1,20 +1,19 @@
 #include <iostream>
-#include "../xml/xml.h"
+#include "../flowCtrl/FlowCtrl.h"
 
 using namespace std;
 
 int main(int argc, char* argv[])
 {
-    CXml* pXml = new CXml;
+    CFlowCtrl* pFlowCtrl = CFlowCtrl::Instance();
+
+    pFlowCtrl->Init();
+
     vector<TestElement> vTestElement;
 
-    pXml->ReadTreeXml("E:\\Code\\AutoTest\\dll.xml", vTestElement);
+    pFlowCtrl->ReadTree("E:\\Code\\AutoTest\\dll.xml", vTestElement);
 
-    pXml->WriteTreeXml("E:\\Code\\AutoTest\\dll01.xml", vTestElement);
-
-    vector<string> vPath;
-    pXml->ReadPathXml("E:\\Code\\AutoTest\\path.xml", vPath);
-    pXml->WritePathXml("E:\\Code\\AutoTest\\path01.xml", vPath);
+    pFlowCtrl->StartTest("E:\\Code\\AutoTest", vTestElement);
 
     return 0;
 }

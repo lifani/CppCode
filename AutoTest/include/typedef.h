@@ -5,14 +5,17 @@
 #include <iostream>
 #include <string>
 
+#include <Windows.h>
+#include <process.h>
+
 #include <vector>
 #include <list>
 #include <map>
 
-#ifdef AUTOTEST_EXPORTS
-#define AUTOTEST_API _declspec(dllexport)
+#ifdef DLL_EXPORTS
+#define DLL_API _declspec(dllexport)
 #else
-#define AUTOTEST_API _declspec(dllimport)
+#define DLL_API _declspec(dllimport)
 #endif
 
 using namespace std;
@@ -45,7 +48,7 @@ typedef struct _ThreadTag
     string name;
     vector<TestTag> vTestTag;
     bool bRunning;
-};
+}ThreadTag;
 
 #define T_ID    "id"
 #define T_NAME  "name"
@@ -57,5 +60,11 @@ typedef struct _ThreadTag
 
 #define N_PATHS "paths"
 #define N_PATH  "path"
+
+#define MS_OK    0
+#define MS_ERR   1
+
+#define RESULT_PATH "result"
+#define SEPERATOR "\\"
 
 #endif

@@ -60,7 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="E:\Code\AutoTest\Debug\xml.lib"
+				AdditionalOptions="E:\Code\AutoTest\Debug\flowctrl.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
