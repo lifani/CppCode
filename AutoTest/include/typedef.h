@@ -45,7 +45,10 @@ typedef struct _TestTag
 // Ïß³Ìtag
 typedef struct _ThreadTag
 {
+    int id;
     string name;
+    string time;
+
     vector<TestTag> vTestTag;
     bool bRunning;
 }ThreadTag;

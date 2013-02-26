@@ -3,38 +3,43 @@
 // Date     :       2013-02-21
 // Ver      :       1.0
 
+#include "../TestDllBox/TestDllBox.h"
 #include "FlowCtrl.h"
 #include "../ToolBox/toolBox.h"
 
 CFlowCtrl* CFlowCtrl::m_pFlowCtrl = NULL;
 
-CFlowCtrl::CFlowCtrl(void)
+CFlowCtrl* CFlowCtrl::Instance()
 {
-    m_pVThreadTag = new vector<ThreadTag>;
-    m_pTrack = new vector<ThreadTag>;
+    if (NULL == m_pFlowCtrl)
+    {
+        m_pFlowCtrl = new CFlowCtrl;
+    }
+
+    return m_pFlowCtrl;
+}
+
+CFlowCtrl::CFlowCtrl(void): m_pVThreadTag(NULL), m_pTrack(NULL)
+{
+    
 }
 
 CFlowCtrl::~CFlowCtrl(void)
 {
-    if (NULL != m_pVThreadTag)
-    {
-        delete m_pVThreadTag;
-        m_pVThreadTag = NULL;
-    }
-
-    if (NULL != m_pTrack)
-    {
-        delete m_pTrack;
-        m_pTrack = NULL;
-    }
+    Destory();
 }
 
 bool CFlowCtrl::Init()
 {
     m_strAppPath = GetAppPath();
 
-    if (NULL == m_pVThreadTag)
+    m_pVThreadTag   = new vector<ThreadTag>;
+    m_pTrack        = new vector<ThreadTag>;
+    m_pTestDllBox   = CTestDllBox::Instance();
+
+    if (NULL == m_pVThreadTag || NULL == m_pTrack || NULL == m_pTestDllBox)
     {
+        Destory();
         return false;
     }
 
@@ -105,6 +110,9 @@ bool CFlowCtrl::StartTest( const string& strIn, vector<TestElement>& vTestElemen
     m_pTrack->clear();
 
     // 执行测试
+    m_pTestDllBox->StartTest(m_pVThreadTag, m_strAppPath, m_strPathIn, m_strResultPath);
+
+    // 启动监控线程
 
     return true;
 }
@@ -145,8 +153,13 @@ bool CFlowCtrl::CreateTestPath( vector<TestElement>& vTestElement )
 void CFlowCtrl::PushBackVTestTag( TestAtom& tAtom, vector<ThreadTag>& vThreadTag )
 {
     ThreadTag threadTag;
-    threadTag.bRunning = false;
-    threadTag.name = tAtom.name;
+    
+    threadTag.id        = tAtom.id;
+    threadTag.name      = tAtom.name;
+    threadTag.bRunning  = false;
+
+    string strDllPath = m_strAppPath + SEPERATOR + tAtom.name;
+    GetCreationTime(strDllPath, threadTag.time);
 
     if (m_pTrack->empty())
     {
@@ -192,4 +205,25 @@ string CFlowCtrl::GetAppPath()
     }
 
     return string(szPath);
+}
+
+void CFlowCtrl::Destory()
+{
+    if (NULL != m_pVThreadTag)
+    {
+        delete m_pVThreadTag;
+        m_pVThreadTag = NULL;
+    }
+
+    if (NULL != m_pTrack)
+    {
+        delete m_pTrack;
+        m_pTrack = NULL;
+    }
+
+    if (NULL != m_pTestDllBox)
+    {
+        delete m_pTestDllBox;
+        m_pTestDllBox = NULL;
+    }
 }

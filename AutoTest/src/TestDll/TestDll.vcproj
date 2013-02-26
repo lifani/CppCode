@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="flowCtrl"
-	ProjectGUID="{00A38D92-AE81-478E-8BBE-9EAFB44F8793}"
-	RootNamespace="flowCtrl"
+	Name="TestDll"
+	ProjectGUID="{4984DD0E-1593-4E93-ACCF-4CAD363DCB7C}"
+	RootNamespace="TestDll"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;FLOWCTRL_EXPORTS;DLL_EXPORTS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;TESTDLL_EXPORTS;DLL_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -60,7 +60,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="E:\Code\AutoTest\Debug\xml.lib&#x0D;&#x0A;E:\Code\AutoTest\Debug\ToolBox.lib&#x0D;&#x0A;E:\Code\AutoTest\Debug\testdllbox.lib&#x0D;&#x0A;E:\Code\AutoTest\Debug\testdllthread.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -115,7 +114,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;FLOWCTRL_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;TESTDLL_EXPORTS"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -172,11 +171,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\common\BaseThread.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\FlowCtrl.cpp"
+				RelativePath=".\TestDll.cpp"
 				>
 			</File>
 		</Filter>
@@ -186,11 +181,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\common\BaseThread.h"
+				RelativePath="..\common\DllInterface.h"
 				>
 			</File>
 			<File
-				RelativePath=".\FlowCtrl.h"
+				RelativePath=".\TestDll.h"
 				>
 			</File>
 		</Filter>

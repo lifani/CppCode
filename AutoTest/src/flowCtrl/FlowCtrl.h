@@ -8,21 +8,14 @@
 
 #include "../../include/typedef.h"
 #include "../xml/xml.h"
+#include "../TestDllBox/TestDllBox.h"
 #include "../common/BaseThread.h"
 
 class DLL_API CFlowCtrl : public CBaseThread
 {
 public:
 
-    static CFlowCtrl* Instance()
-    {
-        if (NULL == m_pFlowCtrl)
-        {
-            m_pFlowCtrl = new CFlowCtrl;
-        }
-
-        return m_pFlowCtrl;
-    }
+    static CFlowCtrl* Instance();
 
     virtual ~CFlowCtrl(void);
 
@@ -57,9 +50,13 @@ private:
     bool NeedExecute(TestTag& testTag);
 
     string GetAppPath();
+
+    void Destory();
 private:
 
     static CFlowCtrl* m_pFlowCtrl;
+
+    CTestDllBox* m_pTestDllBox;
 
     CXml m_CXml;
 
