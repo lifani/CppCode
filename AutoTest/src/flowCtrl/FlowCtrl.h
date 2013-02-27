@@ -9,9 +9,8 @@
 #include "../../include/typedef.h"
 #include "../xml/xml.h"
 #include "../TestDllBox/TestDllBox.h"
-#include "../common/BaseThread.h"
 
-class DLL_API CFlowCtrl : public CBaseThread
+class DLL_API CFlowCtrl
 {
 public:
 
@@ -33,11 +32,11 @@ public:
 
     bool EndTest();
 
+    void GetProgress(vector<TestElement>& vTestElement);
+
 private:
 
     CFlowCtrl(void);
-
-    void Run();
 
     bool EndThreadNormal(DWORD ulTimes = 10);
 
@@ -46,6 +45,8 @@ private:
     bool CreateTestPath(vector<TestElement>& vTestElement);
 
     void PushBackVTestTag(TestAtom& tAtom, vector<ThreadTag>& vThreadTag);
+
+    int GetProgressImp(const int id, const string& strName);
 
     bool NeedExecute(TestTag& testTag);
 

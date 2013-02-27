@@ -24,6 +24,7 @@ using namespace std;
 typedef struct _TestAtom
 {
     int id;
+    int nResult;
     string name;
 }TestAtom;
 
@@ -52,6 +53,7 @@ typedef struct _ThreadTag
     vector<TestTag> vTestTag;
     bool bRunning;
 }ThreadTag;
+
 
 #define T_ID    "id"
 #define T_NAME  "name"

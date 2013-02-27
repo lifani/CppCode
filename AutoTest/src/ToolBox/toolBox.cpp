@@ -108,6 +108,8 @@ DLL_API int GetFileTimes( const string& strIn,
     {
         return MS_ERR;
     }
+
+    CloseHandle(hdl);
     
     return MS_OK;
 }

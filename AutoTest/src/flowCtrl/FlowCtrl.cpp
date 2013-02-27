@@ -66,11 +66,6 @@ bool CFlowCtrl::SavePath(const string& strIn, vector<string>& vPath)
     return m_CXml.WritePathXml(strIn, vPath);
 }
 
-void CFlowCtrl::Run()
-{
-
-}
-
 bool CFlowCtrl::EndThreadNormal( DWORD ulTimes /*= 10*/ )
 {
     return true;
@@ -82,6 +77,9 @@ bool CFlowCtrl::StartTest( const string& strIn, vector<TestElement>& vTestElemen
     {
         return false;
     }
+
+    // 输入文件路径
+    m_strPathIn = strIn;
 
     string strName = strIn;
 
@@ -110,11 +108,7 @@ bool CFlowCtrl::StartTest( const string& strIn, vector<TestElement>& vTestElemen
     m_pTrack->clear();
 
     // 执行测试
-    m_pTestDllBox->StartTest(m_pVThreadTag, m_strAppPath, m_strPathIn, m_strResultPath);
-
-    // 启动监控线程
-
-    return true;
+    return m_pTestDllBox->StartTest(m_pVThreadTag, m_strAppPath, m_strPathIn, m_strResultPath);
 }
 
 int CFlowCtrl::CreateSaveDirectory( const string& strIn )
@@ -226,4 +220,45 @@ void CFlowCtrl::Destory()
         delete m_pTestDllBox;
         m_pTestDllBox = NULL;
     }
+}
+
+void CFlowCtrl::GetProgress( vector<TestElement>& vTestElement )
+{
+    vector<TestElement>::iterator itrEle = vTestElement.begin();
+    for (; itrEle != vTestElement.end(); ++itrEle)
+    {
+        vector<TestAtom>::iterator itrAtom = itrEle->vTestAtom.begin();
+        for (; itrAtom != itrEle->vTestAtom.end(); ++itrAtom)
+        {
+            itrAtom->nResult = GetProgressImp(itrAtom->id, itrAtom->name);
+        }
+    }
+}
+
+int CFlowCtrl::GetProgressImp(const int id, const string& strName )
+{
+    vector<ThreadTag>::iterator itr = m_pVThreadTag->begin();
+    for (; itr != m_pVThreadTag->end(); ++itr)
+    {
+        if (id == itr->id && strName == itr->name)
+        {
+            if (itr->bRunning)
+            {
+                return 0;
+            }
+            
+            vector<TestTag>::iterator itrTag = itr->vTestTag.begin();
+            for (; itrTag != itr->vTestTag.end(); ++itrTag)
+            {
+                if (itrTag->nTestResult == 0)
+                {
+                    return -1;
+                }
+            }
+
+            return 1;
+        }
+    }
+
+    return 0;
 }
