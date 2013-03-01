@@ -21,5 +21,4 @@ public:
 
 typedef CDllInterface* (*FUNC)();
 extern "C" DLL_API CDllInterface* CreateInstance();
-
 #endif

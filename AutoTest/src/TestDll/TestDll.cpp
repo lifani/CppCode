@@ -25,5 +25,12 @@ void CTestDll::StartTest( const string& strIn, const string& strOut )
     cout << strIn.c_str() << endl;
     cout << strOut.c_str() << endl;
 
+    FILE* f = fopen(strOut.c_str(), "a+");
+    
+    if (f != NULL)
+    {
+        fclose(f);
+    }
+
     system("pause");
 }

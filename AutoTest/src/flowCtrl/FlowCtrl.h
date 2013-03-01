@@ -34,6 +34,8 @@ public:
 
     void GetProgress(vector<TestElement>& vTestElement);
 
+    string GetAppPath();
+
 private:
 
     CFlowCtrl(void);
@@ -48,9 +50,7 @@ private:
 
     int GetProgressImp(const int id, const string& strName);
 
-    bool NeedExecute(TestTag& testTag);
-
-    string GetAppPath();
+    void ExecutionJudge(vector<ThreadTag>& vThreadTag);
 
     void Destory();
 private:

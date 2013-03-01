@@ -107,6 +107,9 @@ bool CFlowCtrl::StartTest( const string& strIn, vector<TestElement>& vTestElemen
     // 使用完毕后清理
     m_pTrack->clear();
 
+    // 判定执行路径
+    ExecutionJudge(*m_pVThreadTag);
+
     // 执行测试
     return m_pTestDllBox->StartTest(m_pVThreadTag, m_strAppPath, m_strPathIn, m_strResultPath);
 }
@@ -261,4 +264,62 @@ int CFlowCtrl::GetProgressImp(const int id, const string& strName )
     }
 
     return 0;
+}
+
+void CFlowCtrl::ExecutionJudge( vector<ThreadTag>& vThreadTag )
+{
+    string strInputFileTime = "";
+    GetCreationTime(m_strPathIn, strInputFileTime);
+
+    vector<ThreadTag>::iterator itr = vThreadTag.begin();
+    if (itr != vThreadTag.end())
+    {
+        vector<TestTag>::iterator i = itr->vTestTag.begin();
+        for (; i != itr->vTestTag.end(); ++i)
+        {
+            string strResultPath = m_strResultPath + SEPERATOR + i->strTestPath;
+            if (CheckFileExist(strResultPath))
+            {
+                string strFileTime;
+                GetCreationTime(strResultPath, strFileTime);
+
+                if (strFileTime.compare(itr->time) > 0 && strFileTime.compare(strInputFileTime) > 0)
+                {
+                    i->nTestResult = 1;
+                }
+                else
+                {
+                    DeleteFileA(strResultPath.c_str());
+                }
+            }
+        }
+    }
+
+    ++itr;
+    for (; itr != vThreadTag.end(); ++itr)
+    {
+        vector<TestTag>::iterator i = itr->vTestTag.begin();
+        for (; i != itr->vTestTag.end(); ++i)
+        {
+            string strResultPath = m_strResultPath + SEPERATOR + i->strTestPath;
+
+            int pos = strResultPath.find_last_of('$');
+            string strInputPath = strResultPath.substr(0, pos);
+
+            if (CheckFileExist(strInputPath) && CheckFileExist(strResultPath))
+            {
+                string strFileTime;
+                GetCreationTime(strResultPath, strFileTime);
+
+                if (strFileTime.compare(itr->time) > 0)
+                {
+                    i->nTestResult = 1;
+                }
+                else
+                {
+                    DeleteFileA(strResultPath.c_str());
+                }
+            }
+        }
+    }
 }

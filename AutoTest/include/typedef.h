@@ -23,6 +23,10 @@ using namespace std;
 // 测试对象树叶子节点
 typedef struct _TestAtom
 {
+    _TestAtom() : id(0), nResult(0), name("")
+    {
+    }
+
     int id;
     int nResult;
     string name;
@@ -31,6 +35,11 @@ typedef struct _TestAtom
 // 测试对象树阶段节点
 typedef struct _TestElement
 {
+    _TestElement () : id(0), desc("")
+    {
+
+    }
+
     int id;
     string desc;
     vector<TestAtom> vTestAtom;
@@ -39,6 +48,11 @@ typedef struct _TestElement
 // 测试任务tag
 typedef struct _TestTag
 {
+    _TestTag () : strTestPath(""), nTestResult(0)
+    {
+
+    }
+
     string strTestPath;
     int nTestResult;
 }TestTag;
@@ -46,6 +60,11 @@ typedef struct _TestTag
 // 线程tag
 typedef struct _ThreadTag
 {
+    _ThreadTag () : id(0), name(""), time(""), bRunning(false)
+    {
+
+    }
+
     int id;
     string name;
     string time;
@@ -71,5 +90,9 @@ typedef struct _ThreadTag
 
 #define RESULT_PATH "result"
 #define SEPERATOR "\\"
+
+#define DLL_XML "dll.xml"
+#define EXE_XML "exe.xml"
+#define PATH_XML "path.xml"
 
 #endif
