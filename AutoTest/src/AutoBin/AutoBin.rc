@@ -105,6 +105,16 @@ BEGIN
     COMBOBOX        IDC_COMBO_FILE,10,233,105,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP,WS_EX_RTLREADING
 END
 
+IDD_INPUT_DIALOG DIALOGEX 0, 0, 209, 65
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION " ‰»Î√˚≥∆"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,26,39,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,131,39,50,14
+    EDITTEXT        IDC_EDIT_NAME,23,17,163,14,ES_AUTOHSCROLL
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -168,8 +178,31 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 268
     END
+
+    IDD_INPUT_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 202
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 58
+    END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU 
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "ÃÌº”",                          ID__ADD, CHECKED
+        MENUITEM "…æ≥˝",                          ID__DELETE, CHECKED
+    END
+END
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -38,6 +38,12 @@ private:
 
     void GetPath();
 
+    void EnableMenuItem();
+
+    bool CanPopMenu(HTREEITEM hItem);
+
+    void SaveTree();
+
 // й╣ож
 protected:
 	HICON m_hIcon;
@@ -58,6 +64,8 @@ public:
     vector<TestElement> m_vTestPath;
 
     HTREEITEM m_hRoot;
+    HTREEITEM m_hItem;
+    CMenu* m_pSubMenu;
 
     string m_strAppPath;
     string m_strPathIn;
@@ -65,6 +73,8 @@ public:
     string m_strDllXmlPath;
     string m_strExeXmlPath;
     string m_strPathXmlPath;
+
+    BOOL m_IsChanged;
 
     afx_msg void OnDestroy();
     afx_msg void OnBnClickedBtnExecute();
@@ -74,4 +84,8 @@ public:
     afx_msg void OnBnClickedRadio1();
     afx_msg void OnCbnSelchangeComboFile();
     afx_msg void OnTimer(UINT_PTR nIDEvent);
+    afx_msg void OnNMRClickTree(NMHDR *pNMHDR, LRESULT *pResult);
+    afx_msg void OnContextMenuAdd();
+    afx_msg void OnContextMenuDelete();
+    afx_msg void OnBnClickedBtnSave();
 };

@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "AutoBin.h"
 #include "AutoBinDlg.h"
+#include "InputName.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -72,6 +73,10 @@ BEGIN_MESSAGE_MAP(CAutoBinDlg, CDialog)
     ON_BN_CLICKED(IDC_RADIO1, &CAutoBinDlg::OnBnClickedRadio1)
     ON_CBN_SELCHANGE(IDC_COMBO_FILE, &CAutoBinDlg::OnCbnSelchangeComboFile)
     ON_WM_TIMER()
+    ON_NOTIFY(NM_RCLICK, IDC_TREE, &CAutoBinDlg::OnNMRClickTree)
+    ON_COMMAND(ID__ADD, &CAutoBinDlg::OnContextMenuAdd)
+    ON_COMMAND(ID__DELETE, &CAutoBinDlg::OnContextMenuDelete)
+    ON_BN_CLICKED(IDC_BTN_SAVE, &CAutoBinDlg::OnBnClickedBtnSave)
 END_MESSAGE_MAP()
 
 
@@ -107,6 +112,9 @@ BOOL CAutoBinDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+
+    this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(FALSE);
+    m_IsChanged = FALSE;
 
     m_pFlowCtrl = CFlowCtrl::Instance();
     m_pFlowCtrl->Init();
@@ -214,6 +222,14 @@ void CAutoBinDlg::OnDestroy()
     CDialog::OnDestroy();
 
     // TODO: Add your message handler code here
+
+    if (m_IsChanged)
+    {
+        if (IDOK == AfxMessageBox(_T("是否保存已被改变的测试对象树？"), MB_OKCANCEL))
+        {
+            SaveTree();
+        }
+    }
 
     SavePath();
 
@@ -405,4 +421,148 @@ void CAutoBinDlg::OnTimer(UINT_PTR nIDEvent)
     // TODO: Add your message handler code here and/or call default
 
     CDialog::OnTimer(nIDEvent);
+}
+
+void CAutoBinDlg::OnNMRClickTree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+    // TODO: Add your control notification handler code here
+
+    CPoint pt;
+    GetCursorPos(&pt);
+
+    UINT uFlgs;
+    m_treeCtrl.ScreenToClient(&pt);
+
+    m_hItem = m_treeCtrl.HitTest(pt, &uFlgs);
+    if (NULL != m_hItem)
+    {
+        CMenu menu;
+        if (menu.LoadMenu(IDR_MENU1))
+        {
+            m_pSubMenu = menu.GetSubMenu(0);
+
+            CPoint mPoint;
+            GetCursorPos(&mPoint);
+
+            EnableMenuItem();
+            m_pSubMenu->TrackPopupMenu(uFlgs, mPoint.x, mPoint.y, this);
+        }
+    }
+
+    *pResult = 0;
+}
+
+void CAutoBinDlg::OnContextMenuAdd()
+{
+    CInputName Inputdlg;
+    if (IDOK == Inputdlg.DoModal())
+    {
+        CString strName = Inputdlg.m_strName.Trim();
+        if (!strName.IsEmpty())
+        {
+            m_treeCtrl.InsertItem(strName, m_hItem);
+
+            m_IsChanged = TRUE;
+            this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(TRUE);
+            this->GetDlgItem(IDC_BTN_EXECUTE)->EnableWindow(FALSE);
+
+            m_treeCtrl.Expand(m_hItem, TVE_EXPAND);
+        }
+    }
+}
+
+void CAutoBinDlg::OnContextMenuDelete()
+{
+    if (NULL != m_hItem)
+    {
+        m_treeCtrl.DeleteItem(m_hItem);
+
+        m_IsChanged = TRUE;
+        this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(TRUE);
+        this->GetDlgItem(IDC_BTN_EXECUTE)->EnableWindow(FALSE);
+    }
+}
+
+void CAutoBinDlg::EnableMenuItem()
+{
+    if (m_hItem == m_hRoot || m_treeCtrl.ItemHasChildren(m_hItem))
+    {
+        m_pSubMenu->EnableMenuItem(ID__DELETE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+    }
+
+    if (!CanPopMenu(m_hItem))
+    {
+        m_pSubMenu->EnableMenuItem(ID__ADD, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+    }
+}
+
+bool CAutoBinDlg::CanPopMenu( HTREEITEM hItem )
+{
+    HTREEITEM hPItem = m_treeCtrl.GetParentItem(hItem);
+    if (NULL == hPItem || hPItem == m_hRoot)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void CAutoBinDlg::OnBnClickedBtnSave()
+{
+    SaveTree();
+
+    m_IsChanged = FALSE;
+    this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(FALSE);
+    this->GetDlgItem(IDC_BTN_EXECUTE)->EnableWindow(TRUE);
+}
+
+void CAutoBinDlg::SaveTree()
+{
+    USES_CONVERSION;
+
+    m_vTestElement.clear();
+
+    int i = 0;
+
+    HTREEITEM hEle = m_treeCtrl.GetChildItem(m_hRoot);
+    while (hEle)
+    {
+        ++i;
+
+        TestElement tEle;
+        tEle.id = i;
+
+        CString strDesc = m_treeCtrl.GetItemText(hEle);
+        tEle.desc = T2A(strDesc.GetBuffer());
+
+        HTREEITEM hAtom = m_treeCtrl.GetChildItem(hEle);
+        while (hAtom)
+        {
+            TestAtom tAtom;
+            tAtom.id = i;
+            tAtom.nResult = 0;
+
+            CString strName = m_treeCtrl.GetItemText(hAtom);
+            tAtom.name = T2A(strName.GetBuffer());
+
+            tEle.vTestAtom.push_back(tAtom);
+
+            hAtom = m_treeCtrl.GetNextSiblingItem(hAtom);
+        }
+
+        m_vTestElement.push_back(tEle);
+
+        hEle = m_treeCtrl.GetNextSiblingItem(hEle);
+    }
+
+    CButton* pButton = (CButton*)this->GetDlgItem(IDC_RADIO1);
+    if (pButton->GetCheck() == 1)
+    {
+        m_pFlowCtrl->SaveTree(m_strDllXmlPath, m_vTestElement);
+    }
+    else
+    {
+        m_pFlowCtrl->SaveTree(m_strExeXmlPath, m_vTestElement);
+    }
+    
 }
