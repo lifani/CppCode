@@ -23,24 +23,27 @@ using namespace std;
 // 测试对象树叶子节点
 typedef struct _TestAtom
 {
-    _TestAtom() : id(0), nResult(0), name("")
+    _TestAtom() : id(0), nResult(0), name(""), p(NULL)
     {
     }
 
     int id;
     int nResult;
+    void* p;
     string name;
 }TestAtom;
 
 // 测试对象树阶段节点
 typedef struct _TestElement
 {
-    _TestElement () : id(0), desc("")
+    _TestElement () :bRunning(false), id(0), desc(""), p(NULL)
     {
 
     }
 
+    bool bRunning;
     int id;
+    void* p;
     string desc;
     vector<TestAtom> vTestAtom;
 }TestElement;
@@ -60,7 +63,7 @@ typedef struct _TestTag
 // 线程tag
 typedef struct _ThreadTag
 {
-    _ThreadTag () : id(0), name(""), time(""), bRunning(false)
+    _ThreadTag () : id(0), name(""), time(""), nRun(0)
     {
 
     }
@@ -70,7 +73,7 @@ typedef struct _ThreadTag
     string time;
 
     vector<TestTag> vTestTag;
-    bool bRunning;
+    int nRun;
 }ThreadTag;
 
 

@@ -9,6 +9,14 @@
 #define IDR_MAINFRAME                   128
 #define IDR_MENU1                       129
 #define IDD_INPUT_DIALOG                130
+#define IDB_PNG1                        144
+#define IDB_PNG2                        145
+#define IDB_PNG3                        146
+#define IDB_PNG4                        147
+#define IDI_ICON1                       148
+#define IDI_ICON2                       149
+#define IDI_ICON3                       150
+#define IDI_ICON4                       151
 #define IDC_TREE                        1001
 #define IDC_BTN_SAVE                    1002
 #define IDC_BTN_EXECUTE                 1003
@@ -16,8 +24,10 @@
 #define IDC_RADIO2                      1005
 #define IDC_BTN_FILE                    1007
 #define IDC_COMBO_FILE                  1008
-#define IDC_EDIT1                       1009
 #define IDC_EDIT_NAME                   1009
+#define IDC_BTN_STOP                    1010
+#define IDC_STATIC_INFO                 1011
+#define IDC_TREE_SHOW                   1012
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_Menu                         32773
@@ -33,9 +43,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        131
+#define _APS_NEXT_RESOURCE_VALUE        152
 #define _APS_NEXT_COMMAND_VALUE         32781
-#define _APS_NEXT_CONTROL_VALUE         1010
+#define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

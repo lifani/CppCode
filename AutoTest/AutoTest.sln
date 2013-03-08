@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestDll", "src\TestDll\Test
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AutoBin", "src\AutoBin\AutoBin.vcproj", "{CF7D04F0-BDAD-4690-833F-18A9FBDE9C09}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FeatureDetector", "src\FeatureDetector\FeatureDetector.vcproj", "{7EEF5538-0AC3-441D-A96A-5644D9518644}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -55,6 +57,10 @@ Global
 		{CF7D04F0-BDAD-4690-833F-18A9FBDE9C09}.Debug|Win32.Build.0 = Debug|Win32
 		{CF7D04F0-BDAD-4690-833F-18A9FBDE9C09}.Release|Win32.ActiveCfg = Release|Win32
 		{CF7D04F0-BDAD-4690-833F-18A9FBDE9C09}.Release|Win32.Build.0 = Release|Win32
+		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Debug|Win32.Build.0 = Debug|Win32
+		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Release|Win32.ActiveCfg = Release|Win32
+		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

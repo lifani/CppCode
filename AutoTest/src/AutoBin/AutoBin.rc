@@ -71,6 +71,10 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\AutoBin.ico"
+IDI_ICON1               ICON                    "res\\icon1.ico"
+IDI_ICON2               ICON                    "res\\icon2.ico"
+IDI_ICON3               ICON                    "res\\icon3.ico"
+IDI_ICON4               ICON                    "res\\icon4.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -103,6 +107,10 @@ BEGIN
     CONTROL         "EXE",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,84,18,28,10
     PUSHBUTTON      "...",IDC_BTN_FILE,119,232,15,14
     COMBOBOX        IDC_COMBO_FILE,10,233,105,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP,WS_EX_RTLREADING
+    PUSHBUTTON      "ֹͣ",IDC_BTN_STOP,79,251,50,14
+    CTEXT           "",IDC_STATIC_INFO,164,15,217,14
+    GROUPBOX        "",IDC_STATIC,141,27,262,200
+    CONTROL         "",IDC_TREE_SHOW,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | WS_BORDER | WS_HSCROLL | WS_TABSTOP,141,31,263,196
 END
 
 IDD_INPUT_DIALOG DIALOGEX 0, 0, 209, 65
@@ -204,6 +212,16 @@ BEGIN
     END
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_PNG1                PNG                     "res\\accept.png"
+IDB_PNG2                PNG                     "res\\arrow_redo.png"
+IDB_PNG3                PNG                     "res\\arrow_right.png"
+IDB_PNG4                PNG                     "res\\cancel.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //

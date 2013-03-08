@@ -77,9 +77,14 @@ void CTestDllBox::Run()
         {
             oldId = (*itrEle)->itr->id;
 
-            if (!(*itrEle)->itr->bRunning)
+            if ((*itrEle)->itr->nRun == 0 || (*itrEle)->itr->nRun == -1)
             {
-                delete (*itrEle)->pTestDllThread;
+                if ((*itrEle)->pTestDllThread != NULL)
+                {
+                    delete (*itrEle)->pTestDllThread;
+                    (*itrEle)->pTestDllThread = NULL;
+                }
+                
                 itrEle = m_pVThread->erase(itrEle);
             }
             else
@@ -116,7 +121,7 @@ void CTestDllBox::Run()
                     pThreadEle->pTestDllThread = new CTestDllThread(
                         *itrTag, m_strAppPath, m_strIn, m_strResultDir);
                     pThreadEle->itr = itrTag;
-                    pThreadEle->itr->bRunning = true;
+                    pThreadEle->itr->nRun = 1;
 
                     if (MS_ERR == pThreadEle->pTestDllThread->StartNewThread(
                         pThreadEle->handle, pThreadEle->uThreadId))

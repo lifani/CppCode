@@ -45,7 +45,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;MSVC_NEW_VER;DLL_EXPORTS"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;MSVC_NEW_VER"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -101,7 +101,7 @@
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
-			CharacterSet="2"
+			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -126,7 +126,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;MSVC_NEW_VER"
 				MinimalRebuild="false"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -148,6 +148,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="E:\Code\AutoTest\Release\flowCtrl.lib&#x0D;&#x0A;E:\Code\AutoTest\Release\testdllbox.lib&#x0D;&#x0A;E:\Code\AutoTest\Release\testdllthread.lib&#x0D;&#x0A;E:\Code\AutoTest\Release\toolbox.lib&#x0D;&#x0A;E:\Code\AutoTest\Release\xml.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -279,6 +280,18 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
+				RelativePath=".\res\accept.png"
+				>
+			</File>
+			<File
+				RelativePath=".\res\arrow_redo.png"
+				>
+			</File>
+			<File
+				RelativePath=".\res\arrow_right.png"
+				>
+			</File>
+			<File
 				RelativePath=".\res\AutoBin.ico"
 				>
 			</File>
@@ -288,6 +301,26 @@
 			</File>
 			<File
 				RelativePath=".\res\AutoBin.rc2"
+				>
+			</File>
+			<File
+				RelativePath=".\res\cancel.png"
+				>
+			</File>
+			<File
+				RelativePath=".\res\icon1.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\icon2.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\icon3.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\icon4.ico"
 				>
 			</File>
 		</Filter>

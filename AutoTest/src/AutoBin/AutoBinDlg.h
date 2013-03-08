@@ -26,11 +26,13 @@ private:
 
     bool CreateTree(vector<TestElement>& vTestElement);
 
+    bool CreateShowTree(vector<TestElement>& vTestPath);
+
     void CreateTestPath();
 
     void PushbackVTestPath(CString& strDesc, CString& strName);
 
-    void CreateTestAtom(vector<TestElement>::iterator itr, string& strName);
+    void CreateTestAtom(int id, vector<TestElement>::iterator itr, string& strName);
 
     void SavePath();
 
@@ -44,6 +46,18 @@ private:
 
     void SaveTree();
 
+    void InitImage();
+
+    void ShowInfo();
+
+    void ClearInfo();
+
+    void LookUpMaxId();
+
+    void UpdateShowTree();
+
+    void SetItemImage(HTREEITEM hItem, int index);
+
 // й╣ож
 protected:
 	HICON m_hIcon;
@@ -56,6 +70,8 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
     CMultiSelTriCheckTreeCtrl m_treeCtrl;
+    CTreeCtrl m_ShowTreeCtrl;
+
     CComboBox m_CcomboBox;
 
     CFlowCtrl* m_pFlowCtrl;
@@ -67,6 +83,8 @@ public:
     HTREEITEM m_hItem;
     CMenu* m_pSubMenu;
 
+    HTREEITEM m_hShowRoot;
+
     string m_strAppPath;
     string m_strPathIn;
 
@@ -75,6 +93,16 @@ public:
     string m_strPathXmlPath;
 
     BOOL m_IsChanged;
+
+    BOOL m_bRunning;
+    CString m_ProgressDesc;
+
+    CFont m_Font;
+
+    int m_MaxId;
+
+    CImageList m_ImageList;
+
 
     afx_msg void OnDestroy();
     afx_msg void OnBnClickedBtnExecute();
@@ -88,4 +116,5 @@ public:
     afx_msg void OnContextMenuAdd();
     afx_msg void OnContextMenuDelete();
     afx_msg void OnBnClickedBtnSave();
+    afx_msg void OnBnClickedBtnStop();
 };

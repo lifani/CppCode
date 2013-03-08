@@ -16,7 +16,7 @@ public:
 
     virtual ~CDllInterface() {};
 
-    virtual void StartTest(const string& strIn, const string& strOut) = 0;
+    virtual int StartTest(const string& strIn, const string& strOut) = 0;
 };
 
 typedef CDllInterface* (*FUNC)();

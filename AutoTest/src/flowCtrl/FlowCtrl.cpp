@@ -153,7 +153,7 @@ void CFlowCtrl::PushBackVTestTag( TestAtom& tAtom, vector<ThreadTag>& vThreadTag
     
     threadTag.id        = tAtom.id;
     threadTag.name      = tAtom.name;
-    threadTag.bRunning  = false;
+    threadTag.nRun      = 0;
 
     string strDllPath = m_strAppPath + SEPERATOR + tAtom.name;
     GetCreationTime(strDllPath, threadTag.time);
@@ -234,6 +234,14 @@ void CFlowCtrl::GetProgress( vector<TestElement>& vTestElement )
         for (; itrAtom != itrEle->vTestAtom.end(); ++itrAtom)
         {
             itrAtom->nResult = GetProgressImp(itrAtom->id, itrAtom->name);
+            if (itrAtom->nResult == 0)
+            {
+                itrEle->bRunning = true;
+            }
+            else
+            {
+                itrEle->bRunning = false;
+            }
         }
     }
 }
@@ -245,21 +253,34 @@ int CFlowCtrl::GetProgressImp(const int id, const string& strName )
     {
         if (id == itr->id && strName == itr->name)
         {
-            if (itr->bRunning)
+            if (itr->nRun == 1)
             {
                 return 0;
             }
             
+            if (itr->nRun == -1)
+            {
+                return -1;
+            }
+            
+            int nResult = 0;
             vector<TestTag>::iterator itrTag = itr->vTestTag.begin();
             for (; itrTag != itr->vTestTag.end(); ++itrTag)
             {
-                if (itrTag->nTestResult == 0)
+                if (itrTag->nTestResult == 0 || itrTag->nTestResult == -1)
                 {
-                    return -1;
+                    return itrTag->nTestResult;
                 }
+
+                nResult += itrTag->nTestResult;
             }
 
-            return 1;
+            if (itr->vTestTag.size() > 0)
+            {
+                nResult = static_cast<int>(nResult / itr->vTestTag.size());
+            }
+
+            return nResult;
         }
     }
 
@@ -294,6 +315,10 @@ void CFlowCtrl::ExecutionJudge( vector<ThreadTag>& vThreadTag )
             }
         }
     }
+    else
+    {
+        return;
+    }
 
     ++itr;
     for (; itr != vThreadTag.end(); ++itr)
@@ -322,4 +347,11 @@ void CFlowCtrl::ExecutionJudge( vector<ThreadTag>& vThreadTag )
             }
         }
     }
+}
+
+bool CFlowCtrl::EndTest()
+{
+    m_pTestDllBox->EndTest();
+
+    return true;
 }

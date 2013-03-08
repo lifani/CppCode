@@ -10,7 +10,7 @@ public:
 
     virtual ~CTestDll(void);
 
-    void StartTest(const string& strIn, const string& strOut);
+    int StartTest(const string& strIn, const string& strOut);
 };
 
 #endif

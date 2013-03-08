@@ -6,6 +6,7 @@
 #include "AutoBin.h"
 #include "AutoBinDlg.h"
 #include "InputName.h"
+#include <afxcmn.h> 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -59,6 +60,7 @@ void CAutoBinDlg::DoDataExchange(CDataExchange* pDX)
     CDialog::DoDataExchange(pDX);
     DDX_Control(pDX, IDC_TREE, m_treeCtrl);
     DDX_Control(pDX, IDC_COMBO_FILE, m_CcomboBox);
+    DDX_Control(pDX, IDC_TREE_SHOW, m_ShowTreeCtrl);
 }
 
 BEGIN_MESSAGE_MAP(CAutoBinDlg, CDialog)
@@ -77,6 +79,7 @@ BEGIN_MESSAGE_MAP(CAutoBinDlg, CDialog)
     ON_COMMAND(ID__ADD, &CAutoBinDlg::OnContextMenuAdd)
     ON_COMMAND(ID__DELETE, &CAutoBinDlg::OnContextMenuDelete)
     ON_BN_CLICKED(IDC_BTN_SAVE, &CAutoBinDlg::OnBnClickedBtnSave)
+    ON_BN_CLICKED(IDC_BTN_STOP, &CAutoBinDlg::OnBnClickedBtnStop)
 END_MESSAGE_MAP()
 
 
@@ -111,9 +114,29 @@ BOOL CAutoBinDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
+    InitImage();
+
+    m_bRunning = FALSE;
+
 	// TODO: 在此添加额外的初始化代码
+    VERIFY(m_Font.CreateFont(
+        24,                        // nHeight
+        0,                         // nWidth
+        0,                         // nEscapement
+        0,                         // nOrientation
+        FW_NORMAL,                 // nWeight
+        FALSE,                     // bItalic
+        FALSE,                     // bUnderline
+        0,                         // cStrikeOut
+        ANSI_CHARSET,              // nCharSet
+        OUT_DEFAULT_PRECIS,        // nOutPrecision
+        CLIP_DEFAULT_PRECIS,       // nClipPrecision
+        DEFAULT_QUALITY,           // nQuality
+        DEFAULT_PITCH | FF_SWISS,  // nPitchAndFamily
+        _T("Arial")));             // lpszFacename
 
     this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(FALSE);
+    this->GetDlgItem(IDC_BTN_STOP)->ShowWindow(FALSE);
     m_IsChanged = FALSE;
 
     m_pFlowCtrl = CFlowCtrl::Instance();
@@ -135,7 +158,7 @@ BOOL CAutoBinDlg::OnInitDialog()
     AddPath(vPath);
 
     // 测试对象树
-    m_pFlowCtrl->ReadTree(m_strDllXmlPath, m_vTestElement);   
+    m_pFlowCtrl->ReadTree(m_strDllXmlPath, m_vTestElement);  
 
     m_hRoot = m_treeCtrl.InsertItem(_T("测试流程"));
     CreateTree(m_vTestElement);
@@ -207,7 +230,7 @@ bool CAutoBinDlg::CreateTree( vector<TestElement>& vTestElement )
         for (; itrAtom != itrEle->vTestAtom.end(); ++itrAtom)
         {
             CString strName = A2T(itrAtom->name.c_str());
-            m_treeCtrl.InsertItem(strName, treeEle);
+            m_treeCtrl.InsertItem(strName, 3, 1, treeEle);
         }
 
         m_treeCtrl.Expand(treeEle, TVE_EXPAND);
@@ -243,10 +266,13 @@ void CAutoBinDlg::OnDestroy()
 void CAutoBinDlg::CreateTestPath()
 {
     m_vTestPath.clear();
+
+    m_MaxId = 0;
     
     HTREEITEM hTestElement = m_treeCtrl.GetChildItem(m_hRoot);
     while (hTestElement)
     {
+        ++m_MaxId;
         HTREEITEM hTestAtom = m_treeCtrl.GetChildItem(hTestElement);
         while (hTestAtom)
         {
@@ -265,9 +291,27 @@ void CAutoBinDlg::CreateTestPath()
 
 void CAutoBinDlg::OnBnClickedBtnExecute()
 {
+    ClearInfo();
+
     CreateTestPath();
 
+    CreateShowTree(m_vTestPath);
+
+    if (m_vTestPath.empty())
+    {
+        AfxMessageBox(_T("请选择测试节点！"));
+        return;
+    }
+
     m_pFlowCtrl->StartTest(m_strPathIn, m_vTestPath);
+
+    m_bRunning = TRUE;
+
+    // 启动定时器
+    SetTimer(0, 3000, 0);
+
+    GetDlgItem(IDC_BTN_EXECUTE)->ShowWindow(FALSE);
+    GetDlgItem(IDC_BTN_STOP)->ShowWindow(TRUE);
 }
 
 void CAutoBinDlg::PushbackVTestPath( CString& strDesc, CString& strName )
@@ -288,10 +332,10 @@ void CAutoBinDlg::PushbackVTestPath( CString& strDesc, CString& strName )
     {
         if (itr->id == id && itr->desc == desc)
         {
-           CreateTestAtom(itr, name);
+           CreateTestAtom(id, itr, name);
         }
 
-        if (itr->id > id)
+        if (itr->id > id && itr->id <= m_MaxId)
         {
             if (itr->desc != desc)
             {
@@ -299,29 +343,39 @@ void CAutoBinDlg::PushbackVTestPath( CString& strDesc, CString& strName )
             }
             else
             {
-                CreateTestAtom(itr, name);
+                CreateTestAtom(id, itr, name);
                 break;
             }   
         }
     }
 }
 
-void CAutoBinDlg::CreateTestAtom( vector<TestElement>::iterator itr, string& strName )
+void CAutoBinDlg::CreateTestAtom(int id, vector<TestElement>::iterator itr, string& strName )
 {
-    TestElement testEle;
-    testEle.desc = itr->desc;
-    testEle.id = itr->id;
-
     vector<TestAtom>::iterator itrAtom = itr->vTestAtom.begin();
     for (; itrAtom != itr->vTestAtom.end(); ++itrAtom)
     {
         if (itrAtom->name == strName)
         {
-            testEle.vTestAtom.push_back(*itrAtom);
+            break;
         }
     }
 
-    m_vTestPath.push_back(testEle);
+    if (itr->id > id)
+    {
+        TestElement testEle;
+        testEle.desc = itr->desc;
+        testEle.id = itr->id;
+        testEle.vTestAtom.push_back(*itrAtom);
+
+        m_vTestPath.push_back(testEle);
+    }
+    else
+    {
+        TestElement& tEle = m_vTestPath.back();
+        tEle.vTestAtom.push_back(*itrAtom);
+    }
+    
 }
 
 void CAutoBinDlg::OnBnClickedBtnFile()
@@ -419,6 +473,53 @@ void CAutoBinDlg::GetPath()
 void CAutoBinDlg::OnTimer(UINT_PTR nIDEvent)
 {
     // TODO: Add your message handler code here and/or call default
+    m_pFlowCtrl->GetProgress(m_vTestPath);
+
+    BOOL bRunning = FALSE;
+    if (!m_vTestPath.empty())
+    {
+        vector<TestElement>::iterator itrEle = m_vTestPath.begin();
+        for (; itrEle != m_vTestPath.end(); ++itrEle)
+        {
+            vector<TestAtom>::iterator itr = itrEle->vTestAtom.begin();
+            for (; itr != itrEle->vTestAtom.end(); ++itr)
+            {
+                if (itr->nResult == 0)
+                {
+                    bRunning = TRUE;
+
+                    USES_CONVERSION;
+                    m_ProgressDesc.Format(_T("%s %s"), 
+                        _T("测试进行中，当前运行："),  A2T(itrEle->desc.c_str()));
+
+                    // 跳出循环
+                    break;
+                }
+            }
+
+            // 跳出循环
+            if (bRunning)
+            {
+                break;
+            }
+        }
+    }
+
+    // 更新运行状态
+
+    if (!bRunning)
+    {
+        KillTimer(0);
+
+        m_bRunning = FALSE;
+
+        m_ProgressDesc.Format(_T("%s"), _T("测试已完成！"));
+
+        GetDlgItem(IDC_BTN_EXECUTE)->ShowWindow(TRUE);
+        GetDlgItem(IDC_BTN_STOP)->ShowWindow(FALSE);
+    }
+
+    ShowInfo();
 
     CDialog::OnTimer(nIDEvent);
 }
@@ -426,6 +527,11 @@ void CAutoBinDlg::OnTimer(UINT_PTR nIDEvent)
 void CAutoBinDlg::OnNMRClickTree(NMHDR *pNMHDR, LRESULT *pResult)
 {
     // TODO: Add your control notification handler code here
+
+    if (m_bRunning)
+    {
+        return;
+    }
 
     CPoint pt;
     GetCursorPos(&pt);
@@ -454,27 +560,61 @@ void CAutoBinDlg::OnNMRClickTree(NMHDR *pNMHDR, LRESULT *pResult)
 
 void CAutoBinDlg::OnContextMenuAdd()
 {
-    CInputName Inputdlg;
-    if (IDOK == Inputdlg.DoModal())
+    USES_CONVERSION;
+
+    CString strName;
+    if (m_hItem == m_hRoot)
     {
-        CString strName = Inputdlg.m_strName.Trim();
-        if (!strName.IsEmpty())
+        CInputName Inputdlg;
+        if (IDOK != Inputdlg.DoModal())
         {
-            m_treeCtrl.InsertItem(strName, m_hItem);
-
-            m_IsChanged = TRUE;
-            this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(TRUE);
-            this->GetDlgItem(IDC_BTN_EXECUTE)->EnableWindow(FALSE);
-
-            m_treeCtrl.Expand(m_hItem, TVE_EXPAND);
+            return;
         }
+        
+        strName = Inputdlg.m_strName.Trim();
+    }
+    else
+    {
+        CFileDialog dialog(TRUE);
+        if (IDOK == dialog.DoModal())
+        {
+             strName = dialog.GetFileName();
+
+             CString strNewFileName;
+             strNewFileName.Format(_T("%s%s%s"), A2T(m_strAppPath.c_str()), _T(SEPERATOR), strName);
+             CString strExistFileName = dialog.GetPathName();
+             if (!CopyFile(strExistFileName, strNewFileName, TRUE))
+             {
+                 AfxMessageBox(_T("该节点已经存在！"));
+                 return;
+             }
+        }
+    }
+
+    if (!strName.IsEmpty())
+    {
+        m_treeCtrl.InsertItem(strName, m_hItem);
+
+        m_IsChanged = TRUE;
+        this->GetDlgItem(IDC_BTN_SAVE)->EnableWindow(TRUE);
+        this->GetDlgItem(IDC_BTN_EXECUTE)->EnableWindow(FALSE);
+
+        m_treeCtrl.Expand(m_hItem, TVE_EXPAND);
     }
 }
 
 void CAutoBinDlg::OnContextMenuDelete()
 {
+    USES_CONVERSION;
+
     if (NULL != m_hItem)
     {
+        CString strName = m_treeCtrl.GetItemText(m_hItem);
+        CString strExistName;
+        strExistName.Format(_T("%s%s%s"), A2T(m_strAppPath.c_str()), _T(SEPERATOR), strName);
+
+        DeleteFile(strExistName);
+
         m_treeCtrl.DeleteItem(m_hItem);
 
         m_IsChanged = TRUE;
@@ -565,4 +705,150 @@ void CAutoBinDlg::SaveTree()
         m_pFlowCtrl->SaveTree(m_strExeXmlPath, m_vTestElement);
     }
     
+}
+
+void CAutoBinDlg::OnBnClickedBtnStop()
+{
+    m_pFlowCtrl->EndTest();
+
+    m_bRunning = FALSE;
+    KillTimer(0);
+
+    m_ProgressDesc.Format(_T("%s"), _T("测试已被停止！"));
+    ShowInfo();
+
+    GetDlgItem(IDC_BTN_EXECUTE)->ShowWindow(TRUE);
+    GetDlgItem(IDC_BTN_STOP)->ShowWindow(FALSE);
+}
+
+void CAutoBinDlg::ShowInfo()
+{
+    GetDlgItem(IDC_STATIC_INFO)->SetWindowText(m_ProgressDesc);
+    GetDlgItem(IDC_STATIC_INFO)->SetFont(&m_Font);
+
+    UpdateShowTree();
+}
+
+void CAutoBinDlg::ClearInfo()
+{
+    GetDlgItem(IDC_STATIC_INFO)->SetWindowText(_T(""));
+}
+
+bool CAutoBinDlg::CreateShowTree( vector<TestElement>& vTestPath )
+{
+    m_ShowTreeCtrl.DeleteAllItems();
+
+    m_hShowRoot = m_ShowTreeCtrl.InsertItem(_T("测试流程"), 2, 2);
+
+    USES_CONVERSION;
+
+    CString strLastDesc = _T("");
+    HTREEITEM lastItem;
+
+    vector<TestElement>::iterator itr = m_vTestPath.begin();
+    for (; itr != m_vTestPath.end(); ++itr)
+    {
+        CString strDesc = A2T(itr->desc.c_str());
+        if (strDesc.Compare(strLastDesc) != 0)
+        {
+            lastItem = m_ShowTreeCtrl.InsertItem(strDesc, 2, 2, m_hShowRoot);
+            itr->p = (void*)lastItem;
+
+            strLastDesc = strDesc;
+        }
+
+        vector<TestAtom>::iterator itrAtom = itr->vTestAtom.begin();
+        for (; itrAtom != itr->vTestAtom.end(); ++itrAtom)
+        {
+            CString strName = A2T(itrAtom->name.c_str());
+            HTREEITEM h = m_ShowTreeCtrl.InsertItem(strName, 2, 2, lastItem);
+
+            itrAtom->p = (void*)h;
+        }
+
+        m_ShowTreeCtrl.Expand(lastItem, TVE_EXPAND);
+    }
+
+    m_ShowTreeCtrl.Expand(m_hShowRoot, TVE_EXPAND);
+
+    return true;
+}
+
+void CAutoBinDlg::LookUpMaxId()
+{
+    m_MaxId = 0;
+
+    HTREEITEM hTestElement = m_treeCtrl.GetChildItem(m_hRoot);
+    while (hTestElement)
+    {
+        HTREEITEM hTestAtom = m_treeCtrl.GetChildItem(hTestElement);
+        while (hTestAtom)
+        {
+            if (m_treeCtrl.GetCheck(hTestAtom))
+            {
+                ++m_MaxId;
+                break;
+            }
+
+            hTestAtom = m_treeCtrl.GetNextSiblingItem(hTestAtom);
+        }
+
+        hTestElement = m_treeCtrl.GetNextSiblingItem(hTestElement);
+    }
+}
+
+void CAutoBinDlg::UpdateShowTree()
+{
+    USES_CONVERSION;
+
+    bool bRunning = false;
+    int index = 0;
+
+    vector<TestElement>::iterator itr = m_vTestPath.begin();
+    for (; itr != m_vTestPath.end(); ++itr)
+    {
+        vector<TestAtom>::iterator itrAtom = itr->vTestAtom.begin();
+        for (; itrAtom != itr->vTestAtom.end(); ++itrAtom)
+        {
+            CString strDesc;
+            strDesc.Format(_T("%s  %d ms"), A2T(itrAtom->name.c_str()), itrAtom->nResult);
+            m_ShowTreeCtrl.SetItemText((HTREEITEM)itrAtom->p, strDesc);
+
+            index = itrAtom->nResult > 0 ? 0 : itrAtom->nResult == 0 ? 1 : 3;
+            SetItemImage((HTREEITEM)itrAtom->p, index);
+        }
+
+        if (itr->bRunning)
+        {
+            bRunning = true;
+        }
+
+        index = itr->bRunning ? 1 : 0;
+        SetItemImage((HTREEITEM)itr->p, index);
+    }
+
+    index = bRunning ? 1 : 0;
+    SetItemImage(m_hShowRoot, index);
+}
+
+void CAutoBinDlg::InitImage()
+{
+    HICON icon[4];
+    icon[0] = AfxGetApp()->LoadIcon(IDI_ICON1);
+    icon[1] = AfxGetApp()->LoadIcon(IDI_ICON2);
+    icon[2] = AfxGetApp()->LoadIcon(IDI_ICON3);
+    icon[3] = AfxGetApp()->LoadIcon(IDI_ICON4);
+
+    m_ImageList.Create(16, 16, 0, 4, 4);
+    for (int i = 0; i < 4; i++)
+    {
+        m_ImageList.Add(icon[i]);
+    }
+
+    m_ShowTreeCtrl.SetImageList(&m_ImageList, TVSIL_NORMAL);
+}
+
+void CAutoBinDlg::SetItemImage( HTREEITEM hItem, int index )
+{
+    m_ShowTreeCtrl.SetItemImage(hItem, index, index);
 }
