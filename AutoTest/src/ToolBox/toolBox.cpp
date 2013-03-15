@@ -1,7 +1,7 @@
 #include "toolBox.h"
 #include <io.h>
 
-int Replace(string& strInOut, const char oldVal, const char newVal)
+DLL_API int Replace(string& strInOut, const char oldVal, const char newVal)
 {
     if (oldVal == '\0' || newVal == '\0' || strInOut.empty())
     {
@@ -167,6 +167,24 @@ DLL_API int GetLastWriteTime( const string& strIn, string& strOut )
     string t2;
 
     return GetFileTimes(strIn, t1, t2, strOut);
+}
+
+DLL_API string GetAppPath()
+{
+    char szPath[MAX_PATH] = {0};
+
+    GetModuleFileNameA(NULL, szPath, MAX_PATH);
+
+    for (unsigned i = MAX_PATH - 1; i >= 0; --i)
+    {
+        if ('\\' == szPath[i] || '/' == szPath[i])
+        {
+            szPath[i] = '\0';
+            break;
+        }
+    }
+
+    return string(szPath);
 }
 
 

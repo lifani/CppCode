@@ -29,9 +29,20 @@ public:
     // 保存文件路径
     bool WritePathXml(string strIn, vector<string>& vPath);
 
+    // 读参数文件
+    bool ReadArgXml(string strIn, vector<string>& argv);
+
+    // 写参数文件
+    bool WriteArgXml(string strIn, vector<string>& argv);
+
 private:
 
     bool PaserTagNode(TiXmlElement* pNode, TestElement& tElement);
+
+    bool ReadXml(string strIn, const string& strAttribut, vector<string>& vOut);
+
+    bool WriteXml(string strIn, vector<string>& vIn, const string& strRootTag, 
+        const string& strTag, const string& strAttribute);
 
 };
 

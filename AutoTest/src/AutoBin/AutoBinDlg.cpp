@@ -7,6 +7,9 @@
 #include "AutoBinDlg.h"
 #include "InputName.h"
 #include <afxcmn.h> 
+#include "../ToolBox/toolBox.h"
+#include "Detail.h"
+#include "Parameter.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -78,8 +81,11 @@ BEGIN_MESSAGE_MAP(CAutoBinDlg, CDialog)
     ON_NOTIFY(NM_RCLICK, IDC_TREE, &CAutoBinDlg::OnNMRClickTree)
     ON_COMMAND(ID__ADD, &CAutoBinDlg::OnContextMenuAdd)
     ON_COMMAND(ID__DELETE, &CAutoBinDlg::OnContextMenuDelete)
+    ON_COMMAND(ID_DETAIL, &CAutoBinDlg::OnContextMenuDetail)
+    ON_COMMAND(ID_PARAMETER, &CAutoBinDlg::OnContextParameter)
     ON_BN_CLICKED(IDC_BTN_SAVE, &CAutoBinDlg::OnBnClickedBtnSave)
     ON_BN_CLICKED(IDC_BTN_STOP, &CAutoBinDlg::OnBnClickedBtnStop)
+    ON_NOTIFY(NM_RCLICK, IDC_TREE_SHOW, &CAutoBinDlg::OnNMRClickTreeShow)
 END_MESSAGE_MAP()
 
 
@@ -472,7 +478,6 @@ void CAutoBinDlg::GetPath()
 
 void CAutoBinDlg::OnTimer(UINT_PTR nIDEvent)
 {
-    // TODO: Add your message handler code here and/or call default
     m_pFlowCtrl->GetProgress(m_vTestPath);
 
     BOOL bRunning = FALSE;
@@ -526,8 +531,6 @@ void CAutoBinDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CAutoBinDlg::OnNMRClickTree(NMHDR *pNMHDR, LRESULT *pResult)
 {
-    // TODO: Add your control notification handler code here
-
     if (m_bRunning)
     {
         return;
@@ -628,6 +631,7 @@ void CAutoBinDlg::EnableMenuItem()
     if (m_hItem == m_hRoot || m_treeCtrl.ItemHasChildren(m_hItem))
     {
         m_pSubMenu->EnableMenuItem(ID__DELETE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+        m_pSubMenu->EnableMenuItem(ID_PARAMETER, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
     }
 
     if (!CanPopMenu(m_hItem))
@@ -774,29 +778,6 @@ bool CAutoBinDlg::CreateShowTree( vector<TestElement>& vTestPath )
     return true;
 }
 
-void CAutoBinDlg::LookUpMaxId()
-{
-    m_MaxId = 0;
-
-    HTREEITEM hTestElement = m_treeCtrl.GetChildItem(m_hRoot);
-    while (hTestElement)
-    {
-        HTREEITEM hTestAtom = m_treeCtrl.GetChildItem(hTestElement);
-        while (hTestAtom)
-        {
-            if (m_treeCtrl.GetCheck(hTestAtom))
-            {
-                ++m_MaxId;
-                break;
-            }
-
-            hTestAtom = m_treeCtrl.GetNextSiblingItem(hTestAtom);
-        }
-
-        hTestElement = m_treeCtrl.GetNextSiblingItem(hTestElement);
-    }
-}
-
 void CAutoBinDlg::UpdateShowTree()
 {
     USES_CONVERSION;
@@ -851,4 +832,73 @@ void CAutoBinDlg::InitImage()
 void CAutoBinDlg::SetItemImage( HTREEITEM hItem, int index )
 {
     m_ShowTreeCtrl.SetItemImage(hItem, index, index);
+}
+
+void CAutoBinDlg::GetDetailInfo( HTREEITEM hItem )
+{   
+    CString strName = m_ShowTreeCtrl.GetItemText(hItem);
+    int pos = strName.FindOneOf(_T(" "));
+ 
+    CString dllName = strName.Left(pos);
+
+    USES_CONVERSION;
+    string strDllName = T2A(dllName.GetBuffer());
+
+    m_pFlowCtrl->GetDetailInfo(strDllName, m_mapTestPath);
+}
+
+void CAutoBinDlg::OnNMRClickTreeShow(NMHDR *pNMHDR, LRESULT *pResult)
+{
+    CPoint pt;
+    GetCursorPos(&pt);
+
+    m_treeCtrl.ScreenToClient(&pt);
+
+    UINT uFlgs;
+    HTREEITEM hItem = m_ShowTreeCtrl.HitTest(pt, &uFlgs);
+    if ((NULL != hItem) && (TVHT_ONITEMRIGHT & uFlgs))
+    {
+        HTREEITEM pItem = m_ShowTreeCtrl.GetParentItem(hItem);
+        if (NULL != pItem && m_hShowRoot != pItem)
+        {
+            GetDetailInfo(hItem);
+
+            CMenu menu;
+            if (menu.LoadMenu(IDR_MENU2))
+            {
+                m_pSubMenu = menu.GetSubMenu(0);
+
+                CPoint mPoint;
+                GetCursorPos(&mPoint);
+
+                EnableMenuItem();
+                m_pSubMenu->TrackPopupMenu(uFlgs, mPoint.x, mPoint.y, this);
+            }
+        }
+    }
+
+    *pResult = 0;
+}
+
+void CAutoBinDlg::OnContextMenuDetail()
+{
+    CDetail* pDetailDialog = new CDetail;
+
+    pDetailDialog->SetDetail(&m_mapTestPath);
+    pDetailDialog->Create(IDD_DETAIL, NULL);
+    pDetailDialog->ShowWindow(SW_SHOW);
+}
+
+void CAutoBinDlg::OnContextParameter()
+{
+    CString strDllName = m_treeCtrl.GetItemText(m_hItem);
+    USES_CONVERSION;
+
+    string strPath = m_strAppPath + SEPERATOR + T2A(strDllName) + ".xml";
+
+    CParameter* pDailog = new CParameter;
+    pDailog->SetPara(strPath);
+
+    pDailog->Create(IDD_DIALOG_PARA);
+    pDailog->ShowWindow(SW_SHOW);
 }

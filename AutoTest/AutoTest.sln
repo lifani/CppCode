@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AutoBin", "src\AutoBin\Auto
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FeatureDetector", "src\FeatureDetector\FeatureDetector.vcproj", "{7EEF5538-0AC3-441D-A96A-5644D9518644}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SurfDescriptor", "src\SurfDescriptor\SurfDescriptor.vcproj", "{A7D1C51A-44A1-49DB-8E5E-F013EFD3A1F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -61,6 +63,10 @@ Global
 		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Debug|Win32.Build.0 = Debug|Win32
 		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Release|Win32.ActiveCfg = Release|Win32
 		{7EEF5538-0AC3-441D-A96A-5644D9518644}.Release|Win32.Build.0 = Release|Win32
+		{A7D1C51A-44A1-49DB-8E5E-F013EFD3A1F2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A7D1C51A-44A1-49DB-8E5E-F013EFD3A1F2}.Debug|Win32.Build.0 = Debug|Win32
+		{A7D1C51A-44A1-49DB-8E5E-F013EFD3A1F2}.Release|Win32.ActiveCfg = Release|Win32
+		{A7D1C51A-44A1-49DB-8E5E-F013EFD3A1F2}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

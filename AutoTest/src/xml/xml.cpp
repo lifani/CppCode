@@ -123,7 +123,27 @@ bool CXml::WriteTreeXml( string strIn, vector<TestElement>& vTestElement )
 
 bool CXml::ReadPathXml( string strIn, vector<string>& vPath )
 {
-    vPath.clear();
+   return ReadXml(strIn, T_DESC, vPath);
+}
+
+bool CXml::WritePathXml( string strIn, vector<string>& vPath )
+{
+    return WriteXml(strIn, vPath, N_PATHS, N_PATH, T_DESC);
+}
+
+bool CXml::ReadArgXml( string strIn, vector<string>& argv )
+{
+    return ReadXml(strIn, T_DESC, argv);
+}
+
+bool CXml::WriteArgXml( string strIn, vector<string>& argv )
+{
+    return WriteXml(strIn, argv, N_ARGS, N_ARG, T_DESC);
+}
+
+bool CXml::ReadXml( string strIn, const string& strAttribute, vector<string>& vOut )
+{
+    vOut.clear();
 
     TiXmlDocument xmlDoc(strIn.c_str());
     if (!xmlDoc.LoadFile())
@@ -137,26 +157,31 @@ bool CXml::ReadPathXml( string strIn, vector<string>& vPath )
         return false;
     }
 
-    // Read path
+    // Read attribute
     TiXmlElement* pChild = pElement->FirstChildElement();
     for (; pChild != NULL; pChild = pChild->NextSiblingElement())
     {
-        string strDesc = pChild->Attribute(T_DESC);
+        string strDesc = pChild->Attribute(strAttribute.c_str());
 
         if (!strDesc.empty())
         {
-            vPath.push_back(strDesc);
+            vOut.push_back(strDesc);
         }
     }
 
     return true;
 }
 
-bool CXml::WritePathXml( string strIn, vector<string>& vPath )
+bool CXml::WriteXml( string strIn,
+                    vector<string>& vIn, 
+                    const string& strRootTag, 
+                    const string& strTag, 
+                    const string& strAttribute )
 {
+
     TiXmlDocument xmlDoc;
 
-    TiXmlElement* pRoot = new TiXmlElement(N_PATHS);
+    TiXmlElement* pRoot = new TiXmlElement(strRootTag.c_str());
     if (NULL == pRoot)
     {
         return false;
@@ -164,11 +189,11 @@ bool CXml::WritePathXml( string strIn, vector<string>& vPath )
 
     xmlDoc.LinkEndChild(pRoot);
 
-    vector<string>::iterator itr = vPath.begin();
-    for (; itr != vPath.end(); ++itr)
+    vector<string>::iterator itr = vIn.begin();
+    for (; itr != vIn.end(); ++itr)
     {
-        TiXmlElement* pNode = new TiXmlElement(N_PATH);
-        pNode->SetAttribute(T_DESC, itr->c_str());
+        TiXmlElement* pNode = new TiXmlElement(strTag.c_str());
+        pNode->SetAttribute(strAttribute.c_str(), itr->c_str());
 
         pRoot->LinkEndChild(pNode);
     }

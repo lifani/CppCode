@@ -20,7 +20,7 @@ CTestDll::~CTestDll(void)
 {
 }
 
-int CTestDll::StartTest( const string& strIn, const string& strOut )
+int CTestDll::StartTest( const string& strIn, const string& strOut, const string& strParaAdditional )
 {
     cout << strIn.c_str() << endl;
     cout << strOut.c_str() << endl;

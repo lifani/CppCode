@@ -34,6 +34,8 @@ public:
 
     void GetProgress(vector<TestElement>& vTestElement);
 
+    void GetDetailInfo(const string& strDllName, map<string, int>& mapTestPath);
+
     string GetAppPath();
 
 private:

@@ -22,4 +22,6 @@ DLL_API int GetLastWriteTime(const string& strIn, string& strOut);
 
 DLL_API int FileTimeToSysTime(FILETIME* lpFileTime, string& strTimeOut);
 
+DLL_API string GetAppPath();
+
 #endif

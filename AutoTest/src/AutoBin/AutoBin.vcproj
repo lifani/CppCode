@@ -208,7 +208,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Detail.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\InputName.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parameter.cpp"
 				>
 			</File>
 			<File
@@ -258,7 +266,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Detail.h"
+				>
+			</File>
+			<File
 				RelativePath=".\InputName.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parameter.h"
 				>
 			</File>
 			<File

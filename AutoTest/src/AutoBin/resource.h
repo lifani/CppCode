@@ -17,6 +17,9 @@
 #define IDI_ICON2                       149
 #define IDI_ICON3                       150
 #define IDI_ICON4                       151
+#define IDR_MENU2                       152
+#define IDD_DETAIL                      153
+#define IDD_DIALOG_PARA                 154
 #define IDC_TREE                        1001
 #define IDC_BTN_SAVE                    1002
 #define IDC_BTN_EXECUTE                 1003
@@ -28,6 +31,12 @@
 #define IDC_BTN_STOP                    1010
 #define IDC_STATIC_INFO                 1011
 #define IDC_TREE_SHOW                   1012
+#define IDC_SPLIT1                      1013
+#define IDC_EDIT_PARA                   1015
+#define IDC_BTN_ADD                     1016
+#define IDC_BTN_DELETE                  1017
+#define IDC_LIST_PARA                   1018
+#define IDC_BTN_DELETE2                 1019
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_Menu                         32773
@@ -38,14 +47,18 @@
 #define ID__32778                       32778
 #define ID__ADD                         32779
 #define ID__DELETE                      32780
+#define ID__32781                       32781
+#define ID_DETAIL                       32782
+#define ID__32783                       32783
+#define ID_PARAMETER                    32784
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        152
-#define _APS_NEXT_COMMAND_VALUE         32781
-#define _APS_NEXT_CONTROL_VALUE         1013
+#define _APS_NEXT_RESOURCE_VALUE        155
+#define _APS_NEXT_COMMAND_VALUE         32785
+#define _APS_NEXT_CONTROL_VALUE         1019
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

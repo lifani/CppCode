@@ -81,6 +81,13 @@ bool CFlowCtrl::StartTest( const string& strIn, vector<TestElement>& vTestElemen
     // 输入文件路径
     m_strPathIn = strIn;
 
+    vector<string> vPath;
+    vPath.push_back(m_strPathIn);
+
+    // 保存输入文件路径
+    string fileName = m_strAppPath + SEPERATOR + EXECUTE_XML;
+    m_CXml.WritePathXml(fileName, vPath);
+
     string strName = strIn;
 
     // '\' | '/' => $, ':' = > #
@@ -354,4 +361,22 @@ bool CFlowCtrl::EndTest()
     m_pTestDllBox->EndTest();
 
     return true;
+}
+
+void CFlowCtrl::GetDetailInfo( const string& strDllName, map<string, int>& mapTestPath )
+{
+    mapTestPath.clear();
+
+    vector<ThreadTag>::iterator itr = m_pVThreadTag->begin();
+    for (; itr != m_pVThreadTag->end(); ++itr)
+    {
+        if (itr->name == strDllName)
+        {
+            vector<TestTag>::iterator it = itr->vTestTag.begin();
+            for (; it != itr->vTestTag.end(); ++it)
+            {
+                mapTestPath[it->strTestPath] = it->nTestResult;
+            }
+        }
+    }
 }

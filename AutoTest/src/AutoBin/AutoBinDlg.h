@@ -52,11 +52,11 @@ private:
 
     void ClearInfo();
 
-    void LookUpMaxId();
-
     void UpdateShowTree();
 
     void SetItemImage(HTREEITEM hItem, int index);
+
+    void GetDetailInfo(HTREEITEM hItem);
 
 // й╣ож
 protected:
@@ -102,7 +102,7 @@ public:
     int m_MaxId;
 
     CImageList m_ImageList;
-
+    map<string, int> m_mapTestPath;
 
     afx_msg void OnDestroy();
     afx_msg void OnBnClickedBtnExecute();
@@ -115,6 +115,9 @@ public:
     afx_msg void OnNMRClickTree(NMHDR *pNMHDR, LRESULT *pResult);
     afx_msg void OnContextMenuAdd();
     afx_msg void OnContextMenuDelete();
+    afx_msg void OnContextMenuDetail();
+    afx_msg void OnContextParameter();
     afx_msg void OnBnClickedBtnSave();
     afx_msg void OnBnClickedBtnStop();
+    afx_msg void OnNMRClickTreeShow(NMHDR *pNMHDR, LRESULT *pResult);
 };

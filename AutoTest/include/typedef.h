@@ -85,6 +85,9 @@ typedef struct _ThreadTag
 #define N_TAGS  "tags"
 #define N_TAG   "tag"
 
+#define N_ARGS  "args"
+#define N_ARG   "arg"
+
 #define N_PATHS "paths"
 #define N_PATH  "path"
 
@@ -94,8 +97,9 @@ typedef struct _ThreadTag
 #define RESULT_PATH "result"
 #define SEPERATOR "\\"
 
-#define DLL_XML "dll.xml"
-#define EXE_XML "exe.xml"
-#define PATH_XML "path.xml"
+#define DLL_XML         "dll.xml"
+#define EXE_XML         "exe.xml"
+#define PATH_XML        "path.xml"
+#define EXECUTE_XML     "execute.xml"
 
 #endif

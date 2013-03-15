@@ -5,6 +5,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 using namespace cv;
@@ -19,7 +20,7 @@ public:
     CFeatureDetector(void);
     virtual ~CFeatureDetector(void);
 
-    int StartTest(const string& strIn, const string& strOut);
+    int StartTest(const string& strIn, const string& strOut, const string& strParaAdditional);
 
 private:
 

@@ -110,7 +110,7 @@ BEGIN
     PUSHBUTTON      "停止",IDC_BTN_STOP,79,251,50,14
     CTEXT           "",IDC_STATIC_INFO,164,15,217,14
     GROUPBOX        "",IDC_STATIC,141,27,262,200
-    CONTROL         "",IDC_TREE_SHOW,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | WS_BORDER | WS_HSCROLL | WS_TABSTOP,141,31,263,196
+    CONTROL         "",IDC_TREE_SHOW,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_INFOTIP | WS_BORDER | WS_HSCROLL | WS_TABSTOP,141,31,263,196
 END
 
 IDD_INPUT_DIALOG DIALOGEX 0, 0, 209, 65
@@ -121,6 +121,27 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,26,39,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,131,39,50,14
     EDITTEXT        IDC_EDIT_NAME,23,17,163,14,ES_AUTOHSCROLL
+END
+
+IDD_DETAIL DIALOGEX 0, 0, 316, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "详细信息"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,205,162,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,162,50,14
+END
+
+IDD_DIALOG_PARA DIALOGEX 0, 0, 316, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "参数"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_EDIT_PARA,7,155,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "增加",IDC_BTN_ADD,183,155,31,14
+    PUSHBUTTON      "删除",IDC_BTN_DELETE,227,155,31,14
+    CONTROL         "",IDC_LIST_PARA,"SysListView32",LVS_REPORT | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,302,142,WS_EX_LEFTSCROLLBAR
+    PUSHBUTTON      "保存",IDC_BTN_SAVE,271,155,31,14
 END
 
 
@@ -194,6 +215,22 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 58
     END
+
+    IDD_DETAIL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 309
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
+    END
+
+    IDD_DIALOG_PARA, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 309
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -209,19 +246,18 @@ BEGIN
     BEGIN
         MENUITEM "添加",                          ID__ADD, CHECKED
         MENUITEM "删除",                          ID__DELETE, CHECKED
+        MENUITEM "参数",                          ID_PARAMETER, CHECKED
     END
 END
 
+IDR_MENU2 MENU 
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "查看详细信息",                      ID_DETAIL, CHECKED
+    END
+END
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// PNG
-//
-
-IDB_PNG1                PNG                     "res\\accept.png"
-IDB_PNG2                PNG                     "res\\arrow_redo.png"
-IDB_PNG3                PNG                     "res\\arrow_right.png"
-IDB_PNG4                PNG                     "res\\cancel.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //

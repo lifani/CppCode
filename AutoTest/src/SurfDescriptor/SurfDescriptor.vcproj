@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="FeatureDetector"
-	ProjectGUID="{7EEF5538-0AC3-441D-A96A-5644D9518644}"
-	RootNamespace="FeatureDetector"
+	Name="SurfDescriptor"
+	ProjectGUID="{A7D1C51A-44A1-49DB-8E5E-F013EFD3A1F2}"
+	RootNamespace="SurfDescriptor"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;E:\Code\opencv-2.4.3\install\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;FEATUREDETECTOR_EXPORTS;DLL_EXPORTS"
+				AdditionalIncludeDirectories="E:\Code\opencv-2.4.3\install\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SURFDESCRIPTOR_EXPORTS;DLL_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="E:\Code\opencv-2.4.3\install\lib\opencv_core243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_features2d243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_highgui243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_nonfree243d.lib"
+				AdditionalOptions="E:\Code\opencv-2.4.3\install\lib\opencv_core243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_features2d243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_highgui243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_nonfree243d.lib&#x0D;&#x0A;E:\Code\opencv-2.4.3\install\lib\opencv_flann243d.lib&#x0D;&#x0A;E:\Code\AutoTest\Debug\toolbox.lib&#x0D;&#x0A;E:\Code\AutoTest\Debug\xml.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -116,7 +116,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;FEATUREDETECTOR_EXPORTS;DLL_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SURFDESCRIPTOR_EXPORTS"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -173,7 +173,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\FeatureDetector.cpp"
+				RelativePath=".\SurfDescriptor.cpp"
 				>
 			</File>
 		</Filter>
@@ -183,7 +183,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\FeatureDetector.h"
+				RelativePath=".\SurfDescriptor.h"
 				>
 			</File>
 		</Filter>
