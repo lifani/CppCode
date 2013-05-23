@@ -1,4 +1,6 @@
 #include "visionProcess.h"
+#include "tools.h"
+#include "visionMonitor.h"
 #include "../odometer/interface.h"
 
 VisionNode* pQHead = NULL;
@@ -11,39 +13,41 @@ pthread_mutex_t qlock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 
 // 视觉处理线程入口函数
-void* process_vision(void* arg)
+ void* process_vision(void* arg)
 {
     VisionNode* pNode = NULL;
     for (;;)
     {
-	pthread_mutex_lock(&qlock);
-	while( NULL == pQHead )
-        {
-		pthread_cond_wait(&qready, &qlock);
-        }
+		pthread_mutex_lock(&qlock);
+		while( NULL == pQHead )
+		{
+			pthread_cond_wait(&qready, &qlock);
+		}
 
-        pNode       = pQHead;
-        pQHead      = pQHead->next;
-        pNode->next = NULL;
+		pNode       = pQHead;
+		pQHead      = pQHead->next;
+		pNode->next = NULL;
 
-        // 视觉算法处理
-        Run(pNode->lImage, pNode->rImage, pNode->imu);
+		// 视觉算法处理
+		Run(pNode->lImage, pNode->rImage, pNode->imu);
 
-        // 处理结束后释放空间
-        if (NULL != pNode)
-        {
-            pNode->destroy(pNode);
-            pNode = NULL;
-        }
+		// 处理结束后释放空间
+		if (NULL != pNode)
+		{
+			pNode->destroy(pNode);
+			pNode = NULL;
+		}
 
-        pthread_mutex_unlock(&qlock);
+		pthread_mutex_unlock(&qlock);
     }
+	
+	NotifyExit(PROC_EXIT);
 
     return NULL;
 }
 
 // 图像数据入处理队列函数
-void enter_vision_queue(VisionNode* pNode)
+ void enter_vision_queue(VisionNode* pNode)
 {
     if (NULL == pNode)
     {
@@ -67,7 +71,7 @@ void enter_vision_queue(VisionNode* pNode)
     pthread_cond_signal(&qready);
 }
 
-void* InitMMap()
+ void* InitMMap()
 {
 	fd = open(DEVICE_FILENAME, O_RDWR);
 	if (fd < 0)
@@ -86,14 +90,14 @@ void* InitMMap()
 	return ptrData;
 }
 
-void DestoryMMap()
+ void DestoryMMap()
 {
 	munmap(ptrData, MMAP_SIZE);
 	close(fd);
 }
 
 // 读取图像数据线程入口函数
-void* read_vision(void* arg)
+ void* read_vision(void* arg)
 {
     // 算法注册
     Register();
@@ -106,6 +110,7 @@ void* read_vision(void* arg)
     if (st_fd < 0)
     {
         Writelog(LOG_ERR, "Open poll file failed.");
+		NotifyExit(READ_EXIT);
         return NULL;
     }
 
@@ -120,7 +125,7 @@ void* read_vision(void* arg)
         pNode = VisionNode::Instance();
 
         // 调用轮询函数
-	process_poll(&p_fd);
+		process_poll(&p_fd);
 
         // 读取数据
         //if (!Read(pNode->lImage, pNode->rImage, pNode->imu))
@@ -128,27 +133,29 @@ void* read_vision(void* arg)
             //break;
         //}
 		
-	if (!ReadImg(pNode))
-	{
-		writeFlg(p_fd.fd);
-		VisionNode::destroy(pNode);
+		if (!ReadImg(pNode))
+		{
+			writeFlg(p_fd.fd);
+			VisionNode::destroy(pNode);
+				
+			continue;
+		}
 			
-		continue;
-	}
-		
-	writeFlg(p_fd.fd);
+		writeFlg(p_fd.fd);
 
         // 入队列
         enter_vision_queue(pNode);
         pNode = NULL;
     }
+	
+	NotifyExit(READ_EXIT);
 
     return NULL;
 }
 
 
 // 轮询函数
-void process_poll(struct pollfd* p)
+ void process_poll(struct pollfd* p)
 {
     int err = 0;
     while (1)
@@ -167,7 +174,7 @@ void process_poll(struct pollfd* p)
     }
 }
 
-bool isReady(int fd)
+ bool isReady(int fd)
 {
     unsigned char install = '\0';
     int err = read(fd, &install, 1);
@@ -179,10 +186,10 @@ bool isReady(int fd)
     return false;
 }
 
-bool ReadImg(VisionNode*& pNode)
+ bool ReadImg(VisionNode*& pNode)
 {
-    	if (NULL == ptrData)
-    	{
+	if (NULL == ptrData)
+	{
 		return false;
 	}
 	
@@ -207,22 +214,12 @@ bool ReadImg(VisionNode*& pNode)
 	return true;
 }
 
-void writeFlg(int fd)
+ void writeFlg(int fd)
 {
     write(fd, "1", 1);
 }
 
-void Initlog(const char* strProcName)
-{
-    openlog(strProcName, LOG_ODELAY | LOG_PID, LOG_USER);
-}
-
-void Writelog(int priority, const char* strErrInfo, const char* strFileName, int line )
-{
-    syslog(priority, "log : %s at file: %s line: %d", strErrInfo, strFileName, line);
-}
-
-void daemonize(void)
+ void daemonize(void)
 {
     int                 fd0, fd1, fd2;
     pid_t               pid;

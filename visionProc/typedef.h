@@ -28,4 +28,10 @@ typedef void* (*FUNC)(void* arg);
 #define MMAP_SIZE 0x00100000
 #define IMG_SIZE (320 * 240)
 
+enum {
+	MONITOR_WAIT = 0,
+	PROC_EXIT,
+	READ_EXIT
+};
+
 #endif // TYPEDEF_H_INCLUDED

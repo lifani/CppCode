@@ -1,5 +1,7 @@
 #include "typedef.h"
 #include "visionProcess.h"
+#include "visionMonitor.h"
+#include "tools.h"
 
 pthread_t VISION_READ_TID = 0;
 pthread_t VISION_PROC_TID = 0;
@@ -31,6 +33,12 @@ int main(int argc, char* argv[])
 		Writelog(LOG_ERR, "End vision proc.", __FILE__, __LINE__);
 		exit(0);
     }
+	
+	if (!InitMonitor())
+	{
+		Writelog(LOG_ERR, "Init monitor fail.", __FILE__, __LINE__);
+		exit(0);
+	}
 
     //daemonize();
 
@@ -51,25 +59,15 @@ int main(int argc, char* argv[])
         Writelog(LOG_ERR, "Create read process failed.", __FILE__, __LINE__);
         exit(0);
     }
-
-    Writelog(LOG_NOTICE, "Start read vision succed.", __FILE__, __LINE__);
-
-    err = pthread_join(VISION_PROC_TID, &tret);
-    if (err != 0)
-    {
-        Writelog(LOG_ERR, "can't join vision read process.", __FILE__, __LINE__);
-
-        pthread_cancel(VISION_PROC_TID);
-        pthread_cancel(VISION_READ_TID);
-    }
-
-    err = pthread_join(VISION_READ_TID, &tret);
-    if (err != 0)
-    {
-        Writelog(LOG_ERR, "can't join vision alg process.", __FILE__, __LINE__);
-    }
 	
+	Writelog(LOG_NOTICE, "Start read vision succed.", __FILE__, __LINE__);
+	
+	// Start monitor
+	Monitor();
+
     DestoryMMap();
 
+	Writelog(LOG_NOTICE, "Vision system exit normal.", __FILE__, __LINE__);
+	
     return 0;
 }

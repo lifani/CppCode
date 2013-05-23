@@ -1,5 +1,6 @@
 #include "visionNode.h"
 
+const int INDEX_MAX = 1024;
 int   VisionNode::index = 0;
 char* VisionNode::M_BUF = new char[INDEX_MAX * (sizeof(VisionNode) + sizeof(int))];
 

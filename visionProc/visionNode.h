@@ -3,8 +3,6 @@
 
 #include "typedef.h"
 
-const int INDEX_MAX = 1024;
-
 class VisionNode
 {
 public:
@@ -32,7 +30,7 @@ public:
 
     static int index;
     static char* M_BUF;
-} ;
+};
 
 
 #endif // VISIONNODE_H_INCLUDED
