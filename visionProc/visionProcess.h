@@ -27,6 +27,4 @@
 
  void writeFlg(int fd);
 
- void daemonize(void);
-
 #endif // VISIONPROCESS_H_INCLUDED

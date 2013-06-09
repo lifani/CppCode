@@ -34,11 +34,11 @@ static int iCond = -1;
 	switch (iCond)
 	{
 	case PROC_EXIT:
-		Writelog(LOG_NOTICE, "Monitor recived proc thread exit's signal.", __FILE__, __LINE__);
+		Writelog(LOG_NOTICE, "Monitor received proc thread exit's signal.", __FILE__, __LINE__);
 		pthread_cancel(VISION_READ_TID);
 		break;
 	case READ_EXIT:
-		Writelog(LOG_NOTICE, "Monitor recived read thread exit's signal.", __FILE__, __LINE__);
+		Writelog(LOG_NOTICE, "Monitor received read thread exit's signal.", __FILE__, __LINE__);
 		pthread_cancel(VISION_PROC_TID);
 		break;
 	default:

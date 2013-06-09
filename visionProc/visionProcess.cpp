@@ -102,6 +102,14 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
     // 算法注册
     Register();
 
+	// 初始化队列，必选项
+	if (!VisionNode::InitMemory())
+	{
+		Writelog(LOG_ERR, "Initialize memory fail.", __FILE__, __LINE__);
+		NotifyExit(READ_EXIT);
+		return NULL;
+	}
+	
     VisionNode* pNode = NULL;
 
     // 轮询、获取图片数据
@@ -109,7 +117,7 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
     int st_fd = open(DEVICE_SYS_POLL, O_RDWR);
     if (st_fd < 0)
     {
-        Writelog(LOG_ERR, "Open poll file failed.");
+        Writelog(LOG_ERR, "Open poll file failed.", __FILE__, __LINE__);
 		NotifyExit(READ_EXIT);
         return NULL;
     }
@@ -217,80 +225,5 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
  void writeFlg(int fd)
 {
     write(fd, "1", 1);
-}
-
- void daemonize(void)
-{
-    int                 fd0, fd1, fd2;
-    pid_t               pid;
-    struct rlimit       rl;
-    struct sigaction    sa;
-
-    umask(0);
-
-    if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
-    {
-        Writelog(LOG_ERR, "can't get file limit.", __FILE__, __LINE__);
-        return;
-    }
-
-    if ((pid = fork()) < 0)
-    {
-        Writelog(LOG_ERR, "can't fork.", __FILE__, __LINE__);
-        return;
-    }
-    else if (pid != 0)
-    {
-        exit(0);
-    }
-
-    setsid();
-
-    sa.sa_handler = SIG_IGN;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if (sigaction(SIGHUP, &sa, NULL) < 0)
-    {
-        Writelog(LOG_ERR, "can't ignore SIGHUP", __FILE__, __LINE__);
-        return;
-    }
-
-    if ((pid = fork()) < 0)
-    {
-        Writelog(LOG_ERR, "can't fork", __FILE__, __LINE__);
-        return;
-    }
-    else if (pid != 0)
-    {
-        exit(0);
-    }
-
-    if (chdir("./") < 0)
-    {
-        Writelog(LOG_ERR, "can't change directory to ./", __FILE__, __LINE__);
-        return;
-    }
-
-    if (rl.rlim_max == RLIM_INFINITY)
-    {
-        rl.rlim_max = 1024;
-    }
-
-    for (unsigned int i = 0; i < rl.rlim_max; i++)
-    {
-        close(i);
-    }
-
-    fd0 = open("/dev/null", O_RDWR);
-    fd1 = dup(0);
-    fd2 = dup(0);
-
-    if (fd0 != 0 || fd1 != 1 || fd2 != 2)
-    {
-        Writelog(LOG_ERR, "unexpected file descriptors", __FILE__, __LINE__);
-        return;
-    }
-
-    return;
 }
 

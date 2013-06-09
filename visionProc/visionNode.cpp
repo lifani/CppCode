@@ -1,7 +1,7 @@
 #include "visionNode.h"
 
 const int INDEX_MAX = 1024;
-int   VisionNode::index = 0;
+int   VisionNode::index = -1;
 char* VisionNode::M_BUF = new char[INDEX_MAX * (sizeof(VisionNode) + sizeof(int))];
 
 VisionNode::VisionNode() : lImage(NULL), rImage(NULL), imu(NULL), next(NULL)
@@ -30,7 +30,7 @@ VisionNode::~VisionNode()
 
     if (next != NULL)
     {
-        delete next;
+        //delete next;
         next = NULL;
     }
 }
@@ -41,6 +41,22 @@ VisionNode* VisionNode::Instance()
     index = index == INDEX_MAX ? 0 : index;
 
     char* p = M_BUF + index * (sizeof(VisionNode) + sizeof(int));
+	
+	VisionNode* pNode = (VisionNode*)p;
+	pNode->~VisionNode();
 
     return new(p) VisionNode;
 }
+
+bool VisionNode::InitMemory()
+{
+	if (NULL == M_BUF)
+	{
+		return false;
+	}
+	
+	memset(M_BUF, 0, INDEX_MAX * (sizeof(VisionNode) + sizeof(int)));
+	
+	return true;
+}
+

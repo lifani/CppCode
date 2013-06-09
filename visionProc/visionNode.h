@@ -8,6 +8,8 @@ class VisionNode
 public:
 
     static VisionNode* Instance();
+	
+	static bool InitMemory();
 
     static void destroy(VisionNode* p)
     {

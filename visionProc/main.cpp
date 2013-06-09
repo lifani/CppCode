@@ -40,8 +40,6 @@ int main(int argc, char* argv[])
 		exit(0);
 	}
 
-    //daemonize();
-
     // 先启动处理算法处理线程
     if (0 != CreatePthread(process_vision, VISION_PROC_TID))
     {
@@ -49,7 +47,7 @@ int main(int argc, char* argv[])
         exit(0);
     }
 
-    Writelog(LOG_NOTICE, "Start alg process succed.", __FILE__, __LINE__);
+    Writelog(LOG_NOTICE, "Start alg process succeed.", __FILE__, __LINE__);
 
     // 再启动读取线程
     if (0 != CreatePthread(read_vision, VISION_READ_TID))
@@ -60,7 +58,7 @@ int main(int argc, char* argv[])
         exit(0);
     }
 	
-	Writelog(LOG_NOTICE, "Start read vision succed.", __FILE__, __LINE__);
+	Writelog(LOG_NOTICE, "Start read vision succeed.", __FILE__, __LINE__);
 	
 	// Start monitor
 	Monitor();
