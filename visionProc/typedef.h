@@ -28,6 +28,8 @@ typedef void* (*FUNC)(void* arg);
 #define MMAP_SIZE 0x00100000
 #define IMG_SIZE (320 * 240)
 
+#define THREAD_COUNT 2
+
 enum {
 	MONITOR_WAIT = 0,
 	PROC_EXIT,

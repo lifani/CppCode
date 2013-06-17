@@ -113,7 +113,6 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
     VisionNode* pNode = NULL;
 
     // 轮询、获取图片数据
-
     int st_fd = open(DEVICE_SYS_POLL, O_RDWR);
     if (st_fd < 0)
     {

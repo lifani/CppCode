@@ -3,8 +3,16 @@
 #include "visionMonitor.h"
 #include "tools.h"
 
-pthread_t VISION_READ_TID = 0;
-pthread_t VISION_PROC_TID = 0;
+const string msg[THREAD_COUNT + 1] = 
+{
+"All thread start succeed.",
+"Vision process thread start fail.",
+"Vision read thread start fail."
+}; 
+
+
+pthread_t VISION_TID_ARR[THREAD_COUNT] = {0};
+FUNC FUNC_ARR[THREAD_COUNT] = {process_vision, read_vision};
 
 static int CreatePthread(FUNC func, pthread_t& tid)
 {
@@ -17,11 +25,21 @@ static int CreatePthread(FUNC func, pthread_t& tid)
     return err;
 }
 
+static int StartAllThread()
+{
+	for (int i = 0; i < THREAD_COUNT; ++i)
+	{
+		if (0 != CreatePthread(FUNC_ARR[i], VISION_TID_ARR[i]))
+		{
+			return i + 1;
+		}
+	}
+	
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
-    int err = 0;
-    void* tret;
-
     // 启动日志
     Initlog(argv[0]);
 
@@ -39,26 +57,15 @@ int main(int argc, char* argv[])
 		Writelog(LOG_ERR, "Init monitor fail.", __FILE__, __LINE__);
 		exit(0);
 	}
-
-    // 先启动处理算法处理线程
-    if (0 != CreatePthread(process_vision, VISION_PROC_TID))
-    {
-        Writelog(LOG_ERR, "Create process failed.", __FILE__, __LINE__);
-        exit(0);
-    }
-
-    Writelog(LOG_NOTICE, "Start alg process succeed.", __FILE__, __LINE__);
-
-    // 再启动读取线程
-    if (0 != CreatePthread(read_vision, VISION_READ_TID))
-    {
-        pthread_cancel(VISION_PROC_TID);
-
-        Writelog(LOG_ERR, "Create read process failed.", __FILE__, __LINE__);
-        exit(0);
-    }
 	
-	Writelog(LOG_NOTICE, "Start read vision succeed.", __FILE__, __LINE__);
+	int nRet = StartAllThread();
+	if (0 != nRet)
+	{
+		Writelog(LOG_ERR, msg[nRet].c_str(), __FILE__, __LINE__);
+		exit(0);
+	}
+	
+	Writelog(LOG_NOTICE, msg[0].c_str(), __FILE__, __LINE__);
 	
 	// Start monitor
 	Monitor();

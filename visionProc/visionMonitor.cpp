@@ -1,15 +1,25 @@
 #include "visionMonitor.h"
 #include "tools.h"
 
-extern pthread_t VISION_READ_TID;
-extern pthread_t VISION_PROC_TID;
+extern pthread_t VISION_TID_ARR[THREAD_COUNT];
 
 static pthread_mutex_t m_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t m_exit = PTHREAD_COND_INITIALIZER;
 
 static int iCond = -1;
 
- bool InitMonitor()
+static void StopAllThread()
+{
+	for (int i = 0; i < THREAD_COUNT; ++i)
+	{
+		if (0 != VISION_TID_ARR[i])
+		{
+			pthread_cancel(VISION_TID_ARR[i]);
+		}
+	}
+}
+
+bool InitMonitor()
 {	
 	pthread_mutex_lock(&m_lock);
 	
@@ -24,32 +34,19 @@ static int iCond = -1;
 	return true;
 }
 
- void Monitor()
+void Monitor()
 {
 	while (iCond == MONITOR_WAIT)
 	{
 		pthread_cond_wait(&m_exit, &m_lock);
 	}
 	
-	switch (iCond)
-	{
-	case PROC_EXIT:
-		Writelog(LOG_NOTICE, "Monitor received proc thread exit's signal.", __FILE__, __LINE__);
-		pthread_cancel(VISION_READ_TID);
-		break;
-	case READ_EXIT:
-		Writelog(LOG_NOTICE, "Monitor received read thread exit's signal.", __FILE__, __LINE__);
-		pthread_cancel(VISION_PROC_TID);
-		break;
-	default:
-		Writelog(LOG_ERR, "Monitor fail.", __FILE__, __LINE__);
-		break;
-	}
-	
+	StopAllThread();
+
 	pthread_mutex_unlock(&m_lock);
 }
 
- void NotifyExit(int cond)
+void NotifyExit(int cond)
 {
 	pthread_mutex_lock(&m_lock);
 	iCond = cond;
