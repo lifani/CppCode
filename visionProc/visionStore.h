@@ -43,4 +43,8 @@ static void OutFile(StoreVision* p);
 
 static bool CreateOutDir();
 
+static bool OutImg(const char* pData, int size, const char* szPath);
+
+void exit_vision_store();
+
 #endif

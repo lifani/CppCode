@@ -41,6 +41,8 @@ static int end_pos = 0;
 static int fetch_pos = 0;
 static int store_pos = 0;
 
+static bool imu_receive_running = true;
+
 bool InitIMUCan()
 {
 	const int bitrate = 1000000;
@@ -127,7 +129,7 @@ void* IMUCanRecv(void* arg)
 	
 	WaitImuReady();
 	
-	for (;;)
+	while (imu_receive_running)
 	{
 		if (read(s, &frame, sizeof(struct can_frame)) > 0)
 		{
@@ -247,3 +249,9 @@ void WaitImuReady()
 	
 	return;
 }
+
+void exit_imu_receive()
+{
+	imu_receive_running = false;
+}
+

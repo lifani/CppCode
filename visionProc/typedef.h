@@ -21,6 +21,7 @@
 using namespace std;
 
 typedef void* (*FUNC)(void* arg);
+typedef void (*EXIT_FUNC)();
 
 #define DEVICE_FILENAME "/dev/fpga"
 #define DEVICE_SYS_POLL "/sys/devices/platform/omap2-fpga/data"
@@ -30,7 +31,9 @@ typedef void* (*FUNC)(void* arg);
 #define IMG_HEIGHT 240
 #define IMG_SIZE (IMG_WIDTH * IMG_HEIGHT)
 
-#define THREAD_COUNT 3
+#define THREAD_COUNT 4
+
+const char BIT_MASK = 0x0F;
 
 enum {
 	MONITOR_WAIT = 0,

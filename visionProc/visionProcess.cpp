@@ -2,24 +2,28 @@
 #include "tools.h"
 #include "visionMonitor.h"
 #include "visionImu.h"
+#include "visionStore.h"
 #include "../odometer/interface.h"
 
-VisionNode* pQHead = NULL;
-VisionNode* pQTail = NULL;
+static VisionNode* pQHead = NULL;
+static VisionNode* pQTail = NULL;
 
-void* ptrData = NULL;
-int fd = 0;
-int st_fd = 0;
+static void* ptrData = NULL;
+static int fd = 0;
+static int st_fd = 0;
 
-pthread_mutex_t qlock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t qlock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
+
+static bool process_running = true;
+static bool read_running = true;
 
 // 视觉处理线程入口函数
  void* process_vision(void* arg)
 {
 	VisionNode* pNode = NULL;
 	
-	for (;;)
+	while (process_running)
 	{
 		pthread_mutex_lock(&qlock);
 		while( NULL == pQHead )
@@ -33,7 +37,12 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 
 		// 视觉算法处理
 		Run(pNode->lImage, pNode->rImage, (char*)&pNode->imu);
-
+#if 1
+		if (0x08 && BIT_MASK)
+		{
+			append_vision_queue(pNode);
+		}
+#endif
 		// 处理结束后释放空间
 		if (NULL != pNode)
 		{
@@ -126,7 +135,7 @@ void* read_vision(void* arg)
 
 	struct pollfd p_fd;
 
-	for (;;)
+	while (read_running)
 	{
 		pNode = VisionNode::Instance();
 
@@ -159,6 +168,8 @@ void* read_vision(void* arg)
 	
 	close(st_fd);
 	
+	pthread_exit();
+	
 	NotifyExit(READ_EXIT);
 
 	return NULL;
@@ -187,6 +198,7 @@ void process_poll(struct pollfd* p)
 	}
 }
 
+// 是否就绪
 bool isReady()
 {
 	st_fd = open(DEVICE_SYS_POLL, O_RDWR);
@@ -201,6 +213,7 @@ bool isReady()
 	return false;
 }
 
+// 从fpga获取图像数据
 bool ReadImg(VisionNode*& pNode)
 {
 	if (NULL == ptrData)
@@ -233,4 +246,40 @@ void writeFlg(int fd)
 {
 	write(fd, "1", 1);
 }
+
+// 线程退出函数
+void pthread_exit()
+{
+	pthread_mutex_lock(&qlock);
+
+	int cnt;
+	while (pQHead)
+	{
+		VisionNode* pCur = pQHead;
+		pQHead = pQHead->next;
+		
+		VisionNode::destroy(pCur);
+		
+		cnt++;
+	}
+	
+	pthread_mutex_unlock(&qlock);
+	
+	char szData[1024] = {0};
+	sprintf(szData, "The num of last vision node is %d", cnt);
+	
+	Writelog(LOG_ERR, szData, __FILE__, __LINE__);
+}
+
+// 线程运行标志置为false
+void exit_process_vision()
+{
+	process_running = false;
+}
+
+void exit_read_vision()
+{
+	read_running = false;
+}
+
 

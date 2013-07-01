@@ -2,20 +2,45 @@
 #include "visionProcess.h"
 #include "visionMonitor.h"
 #include "visionImu.h"
+#include "visionStore.h"
 #include "tools.h"
+
+#include <signal.h>
 
 const string msg[THREAD_COUNT + 1] = 
 {
 "All thread start succeed.",
 "Vision process thread start fail.",
 "Vision read thread start fail.",
-"Vision receive imu package thread start fail."
+"Vision receive imu package thread start fail.",
+"Vision store thread start fail."
 }; 
 
-const char BIT_MASK = 0x07;
-
 pthread_t VISION_TID_ARR[THREAD_COUNT] = {0};
-FUNC FUNC_ARR[THREAD_COUNT] = {process_vision, read_vision, IMUCanRecv};
+FUNC FUNC_ARR[THREAD_COUNT] = {process_vision, read_vision, IMUCanRecv, store_vision};
+EXIT_FUNC EXIT_FUNC_ARR[THREAD_COUNT] = {exit_process_vision, exit_read_vision, exit_imu_receive, exit_vision_store};
+
+static void signal_exit()
+{
+	for (int i = 0; i < THREAD_COUNT; ++i)
+	{
+		if (0 != VISION_TID_ARR[i])
+		{
+			(*EXIT_FUNC_ARR[i])();
+		}
+	}
+	
+	exit(0);
+}
+
+static void VisionSignal(int signo)
+{
+	if (SIGINT == signo)
+	{
+		Writelog(LOG_ERR, "Receive SIGINT.", __FILE__, __LINE__);
+		signal_exit();
+	}
+}
 
 static int CreatePthread(FUNC func, pthread_t& tid)
 {
@@ -58,6 +83,18 @@ static bool Initialize()
 	if (!InitMonitor())
 	{
 		Writelog(LOG_ERR, "Init monitor fail.", __FILE__, __LINE__);
+		return false;
+	}
+	
+	if (!InitStore())
+	{
+		Writelog(LOG_ERR, "Init vision store fail.", __FILE__, __LINE__);
+		return false;
+	}
+	
+	if (signal(SIGINT, VisionSignal) == SIG_ERR)
+	{
+		Writelog(LOG_ERR, "can't catch SIGINT");
 		return false;
 	}
 	

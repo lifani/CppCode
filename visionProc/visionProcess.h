@@ -27,4 +27,10 @@ static bool ReadImg(VisionNode*& pNode);
 
 static void writeFlg(int fd);
 
+static void pthread_exit();
+
+void exit_process_vision();
+
+void exit_read_vision();
+
 #endif // VISIONPROCESS_H_INCLUDED

@@ -73,4 +73,6 @@ static bool CheckIsTail(char* pData);
 
 static void WaitImuReady();
 
+void exit_imu_receive();
+
 #endif

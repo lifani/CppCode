@@ -1,4 +1,5 @@
 #include "visionStore.h"
+#include "tools.h"
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t ready = PTHREAD_COND_INITIALIZER;
@@ -18,6 +19,8 @@ static unsigned int uDirIndex = 0;
 static unsigned int uFileIndex = 0;
 
 static int imu_fd = 0;
+
+static bool store_vision_running = true;
 
 bool InitStore()
 {
@@ -51,7 +54,9 @@ void* store_vision(void* arg)
 {
 	StoreVision* p = NULL;
 	
-	for (;;)
+	Writelog(LOG_ERR, "store vision thread start.", __FILE__, __LINE__);
+	
+	while (store_vision_running)
 	{
 		pthread_mutex_lock(&lock);
 		while (NULL == QHead)
@@ -72,6 +77,8 @@ void* store_vision(void* arg)
 		delete p;
 		p = NULL;
 	}
+	
+	close(imu_fd);
 	
 	return NULL;
 }
@@ -113,7 +120,9 @@ void append_vision_queue(VisionNode*& pNode)
 	}
 	
 	pthread_mutex_unlock(&lock);
+	pthread_cond_signal(&ready);
 }
+
 
 void OutFile(StoreVision* p)
 {
@@ -125,6 +134,12 @@ void OutFile(StoreVision* p)
 		p->imu.q0, p->imu.q1, p->imu.q2, p->imu.q3);
 	
 	write(imu_fd, szData, strlen(szData));
+	
+	sprintf(szData, "./%d/%06d_l.bmp\0", uDirIndex, uFileIndex);
+	OutImg(p->lImage, IMG_SIZE, szData);
+	
+	sprintf(szData, "./%d/%06d_r.bmp\0", uDirIndex, uFileIndex++);
+	OutImg(p->rImage, IMG_SIZE, szData);
 }
 
 bool CreateOutDir()
@@ -145,7 +160,7 @@ bool CreateOutDir()
 	}
 	
 	sprintf(szPath, "./%d/imu.txt", uDirIndex);
-	imu_fd = open(szPath, O_WRONLY);
+	imu_fd = open(szPath, O_WRONLY | O_CREAT, 0666);
 	if (-1 == imu_fd)
 	{
 		return false;
@@ -153,3 +168,33 @@ bool CreateOutDir()
 	
 	return true;
 }
+
+bool OutImg(const char* pData, int size, const char* szPath)
+{
+	if (NULL == pData || NULL == szPath)
+	{
+		return false;
+	}
+	
+	int fd = open(szPath, O_WRONLY | O_CREAT, 0666);
+	if (-1 == fd)
+	{
+		return false;
+	}
+	
+	// write head
+	write(fd, IMG_HEADER, 54);
+	
+	// write data
+	write(fd, pData, size);
+	
+	close(fd);
+	
+	return true;
+}
+
+void exit_vision_store()
+{
+	store_vision_running =  false;
+}
+
