@@ -1,6 +1,7 @@
 #include "visionProcess.h"
 #include "tools.h"
 #include "visionMonitor.h"
+#include "visionImu.h"
 #include "../odometer/interface.h"
 
 VisionNode* pQHead = NULL;
@@ -8,6 +9,7 @@ VisionNode* pQTail = NULL;
 
 void* ptrData = NULL;
 int fd = 0;
+int st_fd = 0;
 
 pthread_mutex_t qlock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
@@ -15,9 +17,10 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 // 视觉处理线程入口函数
  void* process_vision(void* arg)
 {
-    VisionNode* pNode = NULL;
-    for (;;)
-    {
+	VisionNode* pNode = NULL;
+	
+	for (;;)
+	{
 		pthread_mutex_lock(&qlock);
 		while( NULL == pQHead )
 		{
@@ -29,7 +32,7 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 		pNode->next = NULL;
 
 		// 视觉算法处理
-		Run(pNode->lImage, pNode->rImage, pNode->imu);
+		Run(pNode->lImage, pNode->rImage, (char*)&pNode->imu);
 
 		// 处理结束后释放空间
 		if (NULL != pNode)
@@ -39,39 +42,39 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 		}
 
 		pthread_mutex_unlock(&qlock);
-    }
+	}
 	
 	NotifyExit(PROC_EXIT);
 
-    return NULL;
+	return NULL;
 }
 
 // 图像数据入处理队列函数
- void enter_vision_queue(VisionNode* pNode)
+void enter_vision_queue(VisionNode* pNode)
 {
-    if (NULL == pNode)
-    {
-        return;
-    }
+	if (NULL == pNode)
+	{
+		return;
+	}
 
-    pthread_mutex_lock(&qlock);
+	pthread_mutex_lock(&qlock);
 
-    if (NULL == pQHead)
-    {
-        pQHead = pNode;
-        pQTail = pQHead;
-    }
-    else
-    {
-        pQTail->next = pNode;
-        pQTail = pQTail->next;
-    }
+	if (NULL == pQHead)
+	{
+		pQHead = pNode;
+		pQTail = pQHead;
+	}
+	else
+	{
+		pQTail->next = pNode;
+		pQTail = pQTail->next;
+	}
 
-    pthread_mutex_unlock(&qlock);
-    pthread_cond_signal(&qready);
+	pthread_mutex_unlock(&qlock);
+	pthread_cond_signal(&qready);
 }
 
- void* InitMMap()
+void* InitMMap()
 {
 	fd = open(DEVICE_FILENAME, O_RDWR);
 	if (fd < 0)
@@ -90,17 +93,17 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 	return ptrData;
 }
 
- void DestoryMMap()
+void DestoryMMap()
 {
 	munmap(ptrData, MMAP_SIZE);
 	close(fd);
 }
 
 // 读取图像数据线程入口函数
- void* read_vision(void* arg)
+void* read_vision(void* arg)
 {
-    // 算法注册
-    Register();
+	// 算法注册
+	Register();
 
 	// 初始化队列，必选项
 	if (!VisionNode::InitMemory())
@@ -110,90 +113,95 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 		return NULL;
 	}
 	
-    VisionNode* pNode = NULL;
+	VisionNode* pNode = NULL;
 
-    // 轮询、获取图片数据
-    int st_fd = open(DEVICE_SYS_POLL, O_RDWR);
-    if (st_fd < 0)
-    {
-        Writelog(LOG_ERR, "Open poll file failed.", __FILE__, __LINE__);
+	// 轮询、获取图片数据
+	st_fd = open(DEVICE_SYS_POLL, O_RDWR);
+	if (st_fd < 0)
+	{
+		Writelog(LOG_ERR, "Open poll file failed.", __FILE__, __LINE__);
 		NotifyExit(READ_EXIT);
-        return NULL;
-    }
+		return NULL;
+	}
 
-    struct pollfd p_fd;
+	struct pollfd p_fd;
 
-    p_fd.fd = st_fd;
-    p_fd.events = POLLERR | POLLHUP;
+	for (;;)
+	{
+		pNode = VisionNode::Instance();
 
-
-    for (;;)
-    {
-        pNode = VisionNode::Instance();
-
-        // 调用轮询函数
+		p_fd.fd = st_fd;
+		p_fd.events = POLLERR | POLLHUP;
+		
+		// 调用轮询函数
 		process_poll(&p_fd);
 
-        // 读取数据
-        //if (!Read(pNode->lImage, pNode->rImage, pNode->imu))
-        //{
-            //break;
-        //}
-		
+		// 读取图像数据
 		if (!ReadImg(pNode))
 		{
 			writeFlg(p_fd.fd);
 			VisionNode::destroy(pNode);
+			
+			Writelog(LOG_ERR, "Read img fail.", __FILE__, __LINE__);
 				
 			continue;
 		}
 			
-		writeFlg(p_fd.fd);
+		writeFlg(st_fd);
+		
+		// 读取IMU数据
+		GetIMU(pNode->imu);
 
-        // 入队列
-        enter_vision_queue(pNode);
-        pNode = NULL;
-    }
+		// 入队列
+		enter_vision_queue(pNode);
+		pNode = NULL;
+	}
+	
+	close(st_fd);
 	
 	NotifyExit(READ_EXIT);
 
-    return NULL;
+	return NULL;
 }
 
 
 // 轮询函数
- void process_poll(struct pollfd* p)
+void process_poll(struct pollfd* p)
 {
-    int err = 0;
-    while (1)
-    {
-        p->revents = 0;
-        err = poll(p, 1, -1);
-        if (err < 0 && errno == EINTR)
-        {
-            continue;
-        }
+	int err = 0;
+	while (1)
+	{
+		p->revents = 0;
+		err = poll(p, 1, -1);
+		if (err < 0 && errno == EINTR)
+		{
+			continue;
+		}
+		
+		close(st_fd);
 
-        if (err && isReady(p->fd))
-        {
-            break;
-        }
-    }
+		if (err && isReady())
+		{
+			break;
+		}
+	}
 }
 
- bool isReady(int fd)
+bool isReady()
 {
-    unsigned char install = '\0';
-    int err = read(fd, &install, 1);
-    if (err == 1 && install == '1')
-    {
-        return true;
-    }
+	st_fd = open(DEVICE_SYS_POLL, O_RDWR);
+	
+	unsigned char install = '\0';
+	int err = read(st_fd, &install, 1);
+	if (err == 1 && install == '1')
+	{
+		return true;
+	}
 
-    return false;
+	return false;
 }
 
- bool ReadImg(VisionNode*& pNode)
+bool ReadImg(VisionNode*& pNode)
 {
 	if (NULL == ptrData)
 	{
@@ -215,14 +223,14 @@ pthread_cond_t qready = PTHREAD_COND_INITIALIZER;
 	pNode->lImage[IMG_SIZE] = '\0';
 	pNode->rImage[IMG_SIZE] = '\0';
 	
-	memcpy(pNode->lImage, ptrData, IMG_SIZE);
+	memcpy(pNode->lImage, (char*)ptrData, IMG_SIZE);
 	memcpy(pNode->rImage, (char*)ptrData + IMG_SIZE, IMG_SIZE);
-	
+
 	return true;
 }
 
- void writeFlg(int fd)
+void writeFlg(int fd)
 {
-    write(fd, "1", 1);
+	write(fd, "1", 1);
 }
 

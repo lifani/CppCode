@@ -3,10 +3,10 @@
 
 #include "typedef.h"
 
- bool InitMonitor();
+bool InitMonitor();
 
- void Monitor();
+void Monitor();
 
- void NotifyExit(int cond);
+void NotifyExit(int cond);
 
 #endif

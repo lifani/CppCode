@@ -7,31 +7,32 @@ class VisionNode
 {
 public:
 
-    static VisionNode* Instance();
+	static VisionNode* Instance();
 	
 	static bool InitMemory();
 
-    static void destroy(VisionNode* p)
+	static void destroy(VisionNode* p)
     {
-        p->~VisionNode();
+		p->~VisionNode();
     }
 
 private:
 
-   VisionNode();
+	VisionNode();
 
-   ~VisionNode();
+	~VisionNode();
 
 public:
 
-    char* lImage;
-    char* rImage;
-    char* imu;
+	char* lImage;
+	char* rImage;
+	
+	IMU imu;
 
-    VisionNode* next;
+	VisionNode* next;
 
-    static int index;
-    static char* M_BUF;
+	static int index;
+	static char* M_BUF;
 };
 
 
