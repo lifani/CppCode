@@ -112,8 +112,6 @@ bool InitIMUCan()
 	begin_pos = 0;
 	end_pos = MAX_IMU_NUM * sizeof(IMU_Package);
 	
-	cout << "end_pos : " << end_pos << endl;
-	
 	fetch_pos = -1;
 	store_pos = 0;
 	

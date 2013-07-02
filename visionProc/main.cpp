@@ -20,6 +20,7 @@ pthread_t VISION_TID_ARR[THREAD_COUNT] = {0};
 FUNC FUNC_ARR[THREAD_COUNT] = {process_vision, read_vision, IMUCanRecv, store_vision};
 EXIT_FUNC EXIT_FUNC_ARR[THREAD_COUNT] = {exit_process_vision, exit_read_vision, exit_imu_receive, exit_vision_store};
 
+// 退出线程
 static void signal_exit()
 {
 	for (int i = 0; i < THREAD_COUNT; ++i)
@@ -29,19 +30,25 @@ static void signal_exit()
 			(*EXIT_FUNC_ARR[i])();
 		}
 	}
-	
-	exit(0);
 }
 
+// 信号捕捉函数
 static void VisionSignal(int signo)
-{
+{	
 	if (SIGINT == signo)
 	{
 		Writelog(LOG_ERR, "Receive SIGINT.", __FILE__, __LINE__);
 		signal_exit();
 	}
+	
+	// 暂停2秒
+	sleep(2);
+	
+	// 退出程序
+	exit(0);
 }
 
+// 创建线程
 static int CreatePthread(FUNC func, pthread_t& tid)
 {
     int err = pthread_create(&tid, NULL, func, NULL);
@@ -53,6 +60,7 @@ static int CreatePthread(FUNC func, pthread_t& tid)
     return err;
 }
 
+// 启动线程
 static int StartAllThread()
 {
 	for (int i = 0; i < THREAD_COUNT; ++i)
@@ -66,6 +74,7 @@ static int StartAllThread()
 	return 0;
 }
 
+// 初始化操作
 static bool Initialize()
 {
 	if (NULL == InitMMap())

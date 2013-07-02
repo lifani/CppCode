@@ -252,7 +252,7 @@ void pthread_exit()
 {
 	pthread_mutex_lock(&qlock);
 
-	int cnt;
+	int cnt = 0;
 	while (pQHead)
 	{
 		VisionNode* pCur = pQHead;
@@ -266,7 +266,7 @@ void pthread_exit()
 	pthread_mutex_unlock(&qlock);
 	
 	char szData[1024] = {0};
-	sprintf(szData, "The num of last vision node is %d", cnt);
+	sprintf(szData, "The num of last vision node is %d\0", cnt);
 	
 	Writelog(LOG_ERR, szData, __FILE__, __LINE__);
 }

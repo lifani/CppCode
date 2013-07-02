@@ -54,8 +54,6 @@ void* store_vision(void* arg)
 {
 	StoreVision* p = NULL;
 	
-	Writelog(LOG_ERR, "store vision thread start.", __FILE__, __LINE__);
-	
 	while (store_vision_running)
 	{
 		pthread_mutex_lock(&lock);
