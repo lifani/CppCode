@@ -3,7 +3,7 @@
 #include "visionMonitor.h"
 #include "visionImu.h"
 #include "visionStore.h"
-#include "../odometer/interface.h"
+#include "../VO/demon.h"
 
 static VisionNode* pQHead = NULL;
 static VisionNode* pQTail = NULL;
@@ -37,7 +37,8 @@ static bool read_running = true;
 
 		// 视觉算法处理
 		Run(pNode->lImage, pNode->rImage, (char*)&pNode->imu);
-#if 1
+		
+#ifndef NO_STORE
 		if (0x08 && BIT_MASK)
 		{
 			append_vision_queue(pNode);
@@ -157,9 +158,12 @@ void* read_vision(void* arg)
 		}
 			
 		writeFlg(st_fd);
+
+#ifndef NO_IMURECV
 		
 		// 读取IMU数据
 		GetIMU(pNode->imu);
+#endif
 
 		// 入队列
 		enter_vision_queue(pNode);

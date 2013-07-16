@@ -33,7 +33,11 @@ typedef void (*EXIT_FUNC)();
 
 #define THREAD_COUNT 4
 
-const char BIT_MASK = 0x0F;
+//#define NO_IMURECV
+
+#define NO_STORE
+
+const char BIT_MASK = 0x07;
 
 enum {
 	MONITOR_WAIT = 0,

@@ -82,24 +82,28 @@ static bool Initialize()
 		Writelog(LOG_ERR, "End vision proc.", __FILE__, __LINE__);
 		return false;
 	}
-	
+
+#ifndef NO_IMURECV
 	if (!InitIMUCan())
 	{
 		Writelog(LOG_ERR, "Initialize imu can fail.", __FILE__, __LINE__);
 		return false;
 	}
+#endif
 	
 	if (!InitMonitor())
 	{
 		Writelog(LOG_ERR, "Init monitor fail.", __FILE__, __LINE__);
 		return false;
 	}
-	
+
+#ifndef NO_STORE
 	if (!InitStore())
 	{
 		Writelog(LOG_ERR, "Init vision store fail.", __FILE__, __LINE__);
 		return false;
 	}
+#endif
 	
 	if (signal(SIGINT, VisionSignal) == SIG_ERR)
 	{
