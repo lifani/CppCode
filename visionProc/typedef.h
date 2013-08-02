@@ -26,18 +26,31 @@ typedef void (*EXIT_FUNC)();
 #define DEVICE_FILENAME "/dev/fpga"
 #define DEVICE_SYS_POLL "/sys/devices/platform/omap2-fpga/data"
 
+#define MAP_HEX_FILE	"./map_hex.txt"
+
 #define MMAP_SIZE 0x00100000
+
 #define IMG_WIDTH 320
 #define IMG_HEIGHT 240
 #define IMG_SIZE (IMG_WIDTH * IMG_HEIGHT)
 
-#define THREAD_COUNT 4
+// feature
+#define FRAME_HEAD_LEN 20
+#define FRAME_DATA_LEN (995 * 36)
+#define FRAME_LEN (FRAME_HEAD_LEN + FRAME_DATA_LEN)
+
+#define THREAD_COUNT 5
 
 //#define NO_IMURECV
 
-#define NO_STORE
+//#define NO_STORE
 
-const char BIT_MASK = 0x07;
+//#define NO_DSP
+
+#define NO_MOTION
+
+// 默认运行vision recv 和 proc两个线程
+static char BIT_MASK = 0x03;
 
 enum {
 	MONITOR_WAIT = 0,

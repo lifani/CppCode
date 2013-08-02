@@ -7,13 +7,7 @@ static pthread_cond_t ready = PTHREAD_COND_INITIALIZER;
 static StoreVision* QHead = NULL;
 static StoreVision* QTail = NULL;
 
-static unsigned char IMG_HEADER[54] = 
-{
-	0x42, 0x4d, 0, 0, 0, 0, 0, 0, 0, 0,
-	54, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 8, 0, 
-	0, 0, 0, 0, 0x00, 0x2c, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 0, 0
-};
+static char szData[512] = {0};
 
 static unsigned int uDirIndex = 0;
 static unsigned int uFileIndex = 0;
@@ -23,25 +17,7 @@ static int imu_fd = 0;
 static bool store_vision_running = true;
 
 bool InitStore()
-{
-	long lSize = IMG_SIZE + 54;
-	IMG_HEADER[2] = (unsigned char)(lSize &0x000000ff);
-    IMG_HEADER[3] = (lSize >> 8) & 0x000000ff;
-    IMG_HEADER[4] = (lSize >> 16) & 0x000000ff;
-    IMG_HEADER[5] = (lSize >> 24) & 0x000000ff;
-	
-	long width = IMG_WIDTH;
-	IMG_HEADER[18] = width & 0x000000ff;
-    IMG_HEADER[19] = (width >> 8) &0x000000ff;
-    IMG_HEADER[20] = (width >> 16) &0x000000ff;
-    IMG_HEADER[21] = (width >> 24) &0x000000ff;
-	
-	long height = IMG_HEIGHT;
-	IMG_HEADER[22] = height &0x000000ff;
-    IMG_HEADER[23] = (height >> 8) &0x000000ff;
-    IMG_HEADER[24] = (height >> 16) &0x000000ff;
-    IMG_HEADER[25] = (height >> 24) &0x000000ff;
-	
+{	
 	if (!CreateOutDir())
 	{
 		return false;
@@ -54,6 +30,7 @@ void* store_vision(void* arg)
 {
 	StoreVision* p = NULL;
 	
+	unsigned int cnt = 0;
 	while (store_vision_running)
 	{
 		pthread_mutex_lock(&lock);
@@ -70,6 +47,8 @@ void* store_vision(void* arg)
 		
 		// 调用输出函数
 		OutFile(p);
+		
+		printf("Receive %d frame img\n", cnt++);
 		
 		// 清除
 		delete p;
@@ -96,6 +75,9 @@ void append_vision_queue(VisionNode*& pNode)
 	
 	p->lImage = pNode->lImage;
 	p->rImage = pNode->rImage;
+	
+	p->lLen = (int)pNode->lLen;
+	p->rLen = (int)pNode->rLen;
 	
 	memcpy(&p->imu, &pNode->imu, sizeof(IMU));
 	
@@ -124,7 +106,6 @@ void append_vision_queue(VisionNode*& pNode)
 
 void OutFile(StoreVision* p)
 {
-	char szData[256] = {0};
 	sprintf(szData, "%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
 		p->imu.acc_x, p->imu.acc_y, p->imu.acc_z,
 		p->imu.gyro_x, p->imu.gyro_y, p->imu.gyro_z,
@@ -133,11 +114,11 @@ void OutFile(StoreVision* p)
 	
 	write(imu_fd, szData, strlen(szData));
 	
-	sprintf(szData, "./%d/%06d_l.bmp\0", uDirIndex, uFileIndex);
-	OutImg(p->lImage, IMG_SIZE, szData);
+	sprintf(szData, "./%d/%06d_l.dat\0", uDirIndex, uFileIndex);
+	OutImg(p->lImage, p->lLen, szData);
 	
-	sprintf(szData, "./%d/%06d_r.bmp\0", uDirIndex, uFileIndex++);
-	OutImg(p->rImage, IMG_SIZE, szData);
+	sprintf(szData, "./%d/%06d_r.dat\0", uDirIndex, uFileIndex++);
+	OutImg(p->rImage, p->rLen, szData);
 }
 
 bool CreateOutDir()
@@ -179,9 +160,6 @@ bool OutImg(const char* pData, int size, const char* szPath)
 	{
 		return false;
 	}
-	
-	// write head
-	write(fd, IMG_HEADER, 54);
 	
 	// write data
 	write(fd, pData, size);

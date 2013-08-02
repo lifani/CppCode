@@ -27,6 +27,9 @@ public:
 	char* lImage;
 	char* rImage;
 	
+	short lLen;
+	short rLen;
+	
 	IMU imu;
 
 	VisionNode* next;

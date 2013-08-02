@@ -4,7 +4,7 @@ const int INDEX_MAX = 1024;
 int   VisionNode::index = -1;
 char* VisionNode::M_BUF = new char[INDEX_MAX * (sizeof(VisionNode) + sizeof(int))];
 
-VisionNode::VisionNode() : lImage(NULL), rImage(NULL), next(NULL)
+VisionNode::VisionNode() : lImage(NULL), rImage(NULL), next(NULL), lLen(0), rLen(0)
 {
 }
 

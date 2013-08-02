@@ -29,6 +29,8 @@ static void writeFlg(int fd);
 
 static void pthread_exit();
 
+static bool writeMapHex();
+
 void exit_process_vision();
 
 void exit_read_vision();

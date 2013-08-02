@@ -4,6 +4,7 @@
 #include "visionImu.h"
 #include "visionStore.h"
 #include "tools.h"
+#include "../VO/odometer.h"
 
 #include <signal.h>
 
@@ -13,12 +14,26 @@ const string msg[THREAD_COUNT + 1] =
 "Vision process thread start fail.",
 "Vision read thread start fail.",
 "Vision receive imu package thread start fail.",
-"Vision store thread start fail."
+"Vision store thread start fail.",
+"Vision motion thread start fail."
 }; 
 
 pthread_t VISION_TID_ARR[THREAD_COUNT] = {0};
-FUNC FUNC_ARR[THREAD_COUNT] = {process_vision, read_vision, IMUCanRecv, store_vision};
-EXIT_FUNC EXIT_FUNC_ARR[THREAD_COUNT] = {exit_process_vision, exit_read_vision, exit_imu_receive, exit_vision_store};
+FUNC FUNC_ARR[THREAD_COUNT] = {
+	process_vision, 
+	read_vision, 
+	IMUCanRecv, 
+	store_vision, 
+	visionMotion
+};
+
+EXIT_FUNC EXIT_FUNC_ARR[THREAD_COUNT] = {
+	exit_process_vision, 
+	exit_read_vision, 
+	exit_imu_receive, 
+	exit_vision_store, 
+	exit_vision_motion
+};
 
 // 退出线程
 static void signal_exit()
@@ -74,9 +89,29 @@ static int StartAllThread()
 	return 0;
 }
 
+static void InitBitMask()
+{
+#ifndef NO_IMURECV
+	BIT_MASK |= 0x04;
+#endif
+
+#ifndef NO_STORE
+	BIT_MASK |= 0x08;
+#endif
+
+#ifndef NO_MOTION
+	BIT_MASK |= 0x10;
+#endif
+
+	return;
+}
+
 // 初始化操作
 static bool Initialize()
 {
+	// Init bit mask
+	InitBitMask();
+	
 	if (NULL == InitMMap())
 	{
 		Writelog(LOG_ERR, "End vision proc.", __FILE__, __LINE__);

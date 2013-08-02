@@ -36,13 +36,10 @@ static bool read_running = true;
 		pNode->next = NULL;
 
 		// 视觉算法处理
-		Run(pNode->lImage, pNode->rImage, (char*)&pNode->imu);
+		//Run(pNode->lImage, pNode->lLen, pNode->rImage, pNode->rLen, (char*)&pNode->imu);
 		
 #ifndef NO_STORE
-		if (0x08 && BIT_MASK)
-		{
-			append_vision_queue(pNode);
-		}
+		append_vision_queue(pNode);
 #endif
 		// 处理结束后释放空间
 		if (NULL != pNode)
@@ -100,6 +97,13 @@ void* InitMMap()
 		return 0;
 	}
 	
+	// 写fpga参数
+	if (!writeMapHex())
+	{
+		Writelog(LOG_ERR, "write map hex fail.", __FILE__, __LINE__);
+		return 0;
+	}
+	
 	return ptrData;
 }
 
@@ -133,7 +137,7 @@ void* read_vision(void* arg)
 		NotifyExit(READ_EXIT);
 		return NULL;
 	}
-
+	
 	struct pollfd p_fd;
 
 	while (read_running)
@@ -142,6 +146,7 @@ void* read_vision(void* arg)
 
 		p_fd.fd = st_fd;
 		p_fd.events = POLLERR | POLLHUP;
+		
 		
 		// 调用轮询函数
 		process_poll(&p_fd);
@@ -160,13 +165,13 @@ void* read_vision(void* arg)
 		writeFlg(st_fd);
 
 #ifndef NO_IMURECV
-		
 		// 读取IMU数据
 		GetIMU(pNode->imu);
 #endif
 
 		// 入队列
 		enter_vision_queue(pNode);
+
 		pNode = NULL;
 	}
 	
@@ -224,24 +229,28 @@ bool ReadImg(VisionNode*& pNode)
 	{
 		return false;
 	}
-	
-	pNode->lImage = new char[IMG_SIZE + 1];
+
+	pNode->lImage = new char[FRAME_DATA_LEN + 1];
 	if (NULL == pNode->lImage)
 	{
 		return false;
 	}
 	
-	pNode->rImage = new char[IMG_SIZE + 1];
+	pNode->lLen = *(short*)((char*)ptrData + 0);
+
+	pNode->rImage = new char[FRAME_DATA_LEN + 1];
 	if (NULL == pNode->rImage)
 	{
 		return false;
 	}
 	
-	pNode->lImage[IMG_SIZE] = '\0';
-	pNode->rImage[IMG_SIZE] = '\0';
+	pNode->rLen = *(short*)((char*)ptrData + FRAME_LEN);
 	
-	memcpy(pNode->lImage, (char*)ptrData, IMG_SIZE);
-	memcpy(pNode->rImage, (char*)ptrData + IMG_SIZE, IMG_SIZE);
+	pNode->lImage[FRAME_DATA_LEN] = '\0';
+	pNode->rImage[FRAME_DATA_LEN] = '\0';
+	
+	memcpy(pNode->lImage, (char*)ptrData + FRAME_HEAD_LEN, FRAME_DATA_LEN);
+	memcpy(pNode->rImage, (char*)ptrData + FRAME_LEN + FRAME_HEAD_LEN, FRAME_DATA_LEN);
 
 	return true;
 }
@@ -284,6 +293,39 @@ void exit_process_vision()
 void exit_read_vision()
 {
 	read_running = false;
+}
+
+// 导入fpga参数
+bool writeMapHex()
+{
+	FILE* pf = fopen(MAP_HEX_FILE, "r");
+	if (NULL == pf)
+	{
+		return false;
+	}
+	
+	unsigned int hex = 0;
+	unsigned int i = 0;
+	
+	while (EOF != fscanf(pf, "%x", &hex))
+	{
+		unsigned int* pHex = (unsigned int*)((char*)ptrData + i);
+		*pHex = hex;
+		
+		i += 4;
+	}
+	
+	fclose(pf);
+	
+	int ret = 0;
+	ret = write(fd, ptrData, 153600);
+	ret += write(fd, ptrData, 153600);
+	ret += write(fd, ptrData, 153600);
+	ret += write(fd, ptrData, 153600);
+	
+	printf(" write ret = %d \n", ret);
+	
+	return true;
 }
 
 

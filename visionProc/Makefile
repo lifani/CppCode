@@ -1,7 +1,7 @@
 TARGET = ../output/visionProc
 OBJECTS = visionProcess.o visionNode.o main.o tools.o visionMonitor.o visionImu.o visionStore.o
 
-CFLAGS = -g -I../can/include -I../canutils-4.0.6/include
+CFLAGS = -g -I../can/include -I../canutils-4.0.6/include -I../opencv/include
 LDFLAGS = -Wl,-rpath,./ -Wl,-rpath,../opencv/lib -L../output -L../opencv/lib -L../can/lib -lsocketcan -lvo -ldsp -lopencv_core -lopencv_calib3d -lpthread
 CXX = arm-linux-g++
 

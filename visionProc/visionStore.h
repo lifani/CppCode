@@ -7,11 +7,15 @@ typedef struct tStoreVision
 {
 	char* lImage;
 	char* rImage;
+	
+	int lLen;
+	int rLen;
+	
 	IMU imu;
 	
 	struct tStoreVision* next;
 	
-	tStoreVision() : lImage(NULL), rImage(NULL), imu(), next(NULL)
+	tStoreVision() : lImage(NULL), rImage(NULL), lLen(0), rLen(0), imu(), next(NULL)
 	{
 	}
 	

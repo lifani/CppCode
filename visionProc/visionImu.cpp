@@ -43,6 +43,8 @@ static int store_pos = 0;
 
 static bool imu_receive_running = true;
 
+static char key;
+
 bool InitIMUCan()
 {
 	const int bitrate = 1000000;
@@ -91,8 +93,27 @@ bool InitIMUCan()
 		return false;
 	}
 	
+	P_IMU_DATA = new char[(MAX_IMU_NUM + 1) * sizeof(imu_body)];
+	if (NULL == P_IMU_DATA)
+	{
+		return false;
+	}
+	
+	memset(P_IMU_DATA, 0, (MAX_IMU_NUM + 1) * sizeof(imu_body));
+	
+	begin_pos = 0;
+	end_pos = MAX_IMU_NUM * sizeof(imu_body);
+	
+	fetch_pos = -1;
+	store_pos = 0;
+	
+	return true;
+}
+
+bool SetFilter(int filter)
+{
 	struct can_filter rfilter[1];
-	rfilter[0].can_id = 0x090;
+	rfilter[0].can_id = filter;
 	rfilter[0].can_mask = CAN_SFF_MASK;
 	
 	if (0 != setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)))
@@ -101,29 +122,27 @@ bool InitIMUCan()
 		return false;
 	}
 	
-	P_IMU_DATA = new char[(MAX_IMU_NUM + 1) * sizeof(IMU_Package)];
-	if (NULL == P_IMU_DATA)
-	{
-		return false;
-	}
-	
-	memset(P_IMU_DATA, 0, (MAX_IMU_NUM + 1) * sizeof(IMU_Package));
-	
-	begin_pos = 0;
-	end_pos = MAX_IMU_NUM * sizeof(IMU_Package);
-	
-	fetch_pos = -1;
-	store_pos = 0;
-	
 	return true;
 }
 
 void* IMUCanRecv(void* arg)
 {
 	struct can_frame frame;
-	int size_imu = sizeof(IMU_Package);
+	int size_imu = sizeof(imu_body);
 	
 	bool bIsAtti = false;
+	
+	if (!SetFilter(0x108))
+	{
+		return NULL;
+	}
+	
+	GetKey();
+	
+	if (!SetFilter(0x090))
+	{
+		return NULL;
+	}
 	
 	WaitImuReady();
 	
@@ -138,32 +157,57 @@ void* IMUCanRecv(void* arg)
 				{
 					pthread_mutex_lock(&imu_lock);
 					fetch_pos = store_pos;
+					
+					continue;
 				}
 			}
 			
 			if (bIsAtti)
 			{
-				for (int i = 0; i < frame.can_dlc; ++i)
+				if (frame.can_dlc == 8)
 				{
-					P_IMU_DATA[store_pos++] = frame.data[i];
+					if (CheckIsHead((char*)frame.data) || CheckIsTail((char*)(frame.data + 4)))
+					{
+						store_pos = fetch_pos;
+						bIsAtti = false;
+						pthread_mutex_unlock(&imu_lock);
+					}
+					else 
+					{
+						for (int i = 0; i < frame.can_dlc; ++i)
+						{
+							P_IMU_DATA[store_pos++] = frame.data[i] ^ key;
+						}
+					}
 				}
-				
-				if (store_pos % size_imu == 0)
+				else
 				{
-					store_pos = frame.can_dlc == 4 && CheckIsTail((char*)frame.data) ? store_pos : fetch_pos;
-					
-					pthread_mutex_unlock(&imu_lock);
+					if (frame.can_dlc == 4)
+					{
+						if (store_pos % size_imu != 0 || !CheckIsTail((char*)frame.data))
+						{
+							store_pos = fetch_pos;
+						}
+					}
+					else
+					{
+						store_pos = fetch_pos;
+					}
+
 					bIsAtti = false;
+					pthread_mutex_unlock(&imu_lock);
 				}
 				
 				if (end_pos <= store_pos)
 				{	
-					cout << "store_pos = " << store_pos << " end_pos = " << end_pos << endl;
+					//cout << "store_pos = " << store_pos << " end_pos = " << end_pos << endl;
 					store_pos = begin_pos;
 				}
 			}
 		}
 	}
+	
+	return NULL;
 }
 
 bool GetIMU(IMU& imu)
@@ -173,22 +217,22 @@ bool GetIMU(IMU& imu)
 	pthread_mutex_lock(&imu_lock);
 	if (fetch_pos >= 0)
 	{
-		IMU_Package* p = (IMU_Package*)(P_IMU_DATA + fetch_pos);
+		imu_body* p = (imu_body*)(P_IMU_DATA + fetch_pos);
 		
-		imu.acc_x = p->imu.acc_x;
-		imu.acc_y = p->imu.acc_y;
-		imu.acc_z = p->imu.acc_z;
+		imu.acc_x = p->acc_x;
+		imu.acc_y = p->acc_y;
+		imu.acc_z = p->acc_z;
 				
-		imu.gyro_x = p->imu.gyro_x;
-		imu.gyro_y = p->imu.gyro_y;
-		imu.gyro_z = p->imu.gyro_z;
+		imu.gyro_x = p->gyro_x;
+		imu.gyro_y = p->gyro_y;
+		imu.gyro_z = p->gyro_z;
 		
-		imu.press = p->imu.press;
+		imu.press = p->press;
 		
-		imu.q0 = p->imu.q0;
-		imu.q1 = p->imu.q1;
-		imu.q2 = p->imu.q2;
-		imu.q3 = p->imu.q3;
+		imu.q0 = p->q0;
+		imu.q1 = p->q1;
+		imu.q2 = p->q2;
+		imu.q3 = p->q3;
 		
 		bSucceed = true;
 	}
@@ -202,18 +246,87 @@ bool CheckIsAtti(char* pData)
 	return pData[0] == 0x55 && pData[1] == 0xAA && pData[2] == 0x55 && pData[3] == 0xAA && pData[4] == 0x02 && pData[5] == 0x10;
 }
 
+bool CheckIsMcMode(char* pData)
+{
+	return pData[0] == 0x55 && pData[1] == 0xAA && pData[2] == 0x55 && pData[3] == 0xAA && pData[4] == 0x00 && pData[5] == 0x10;
+}
+
+bool CheckIsHead(char* pData)
+{
+	return pData[0] == 0x55 && pData[1] == 0xAA && pData[2] == 0x55 && pData[3] == 0xAA;
+}
+
 bool CheckIsTail(char* pData)
 {
 	return pData[0] == 0x66 && pData[1] == 0xCC && pData[2] == 0x66 && pData[3] == 0xCC;
+}
+
+void GetKey()
+{
+	struct can_frame frame;
+
+	int size = sizeof(NormalMode);
+	bool bIs = false;
+	int cnt = 0;
+	
+	NormalMode tMode;
+	char* pMode = (char*)&tMode;
+	
+	while (read(s, &frame, sizeof(can_frame)) > 0)
+	{
+		if (!bIs && frame.can_dlc == 8)
+		{
+			bIs = CheckIsMcMode((char*)frame.data);
+			cnt = 0;
+		}
+		
+		if (bIs)
+		{
+			if (cnt + frame.can_dlc > size)
+			{
+				bIs = false;
+				cnt = 0;
+			}
+			else
+			{
+				for (int i = 0; i < frame.can_dlc; ++i)
+				{
+					*(pMode + cnt + i) = frame.data[i];
+				}
+				
+				cnt += frame.can_dlc;
+			}
+			
+			if (cnt == size)
+			{
+				if (CheckIsTail((char*)frame.data + 4))
+				{
+					break;
+				}
+				else
+				{
+					cnt = 0;
+					bIs = false;
+				}
+			}
+		}
+	}
+	
+	key = tMode.mode.key;
+	
+	printf("key = %x ", key);
 }
 
 void WaitImuReady()
 {
 	struct can_frame frame;
 	
+	cout << "wait imu ready..." << endl;
+
 	int size_imu = sizeof(IMU_Package);
 	bool bIsAtti = false;
 	int cnt = 0;
+	
 	
 	while (read(s, &frame, sizeof(can_frame)) > 0)
 	{
@@ -244,7 +357,8 @@ void WaitImuReady()
 			}
 		}
 	}
-	
+
+	cout << "imu ready." << endl;
 	return;
 }
 

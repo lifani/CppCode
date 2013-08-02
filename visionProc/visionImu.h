@@ -4,7 +4,7 @@
 #include "typedef.h"
 
 #pragma pack(1)
-struct cmd_imu_body
+typedef struct cmd_imu_body
 {
 	double 	longti;
 	double 	lati;
@@ -46,7 +46,7 @@ struct cmd_imu_body
 	unsigned short filter_status;
 	unsigned short gps_svn;
 	unsigned short cnt;
-};
+} imu_body;
 
 typedef struct tIMU_Package
 {
@@ -54,10 +54,44 @@ typedef struct tIMU_Package
 	short code;
 	short len;
 	
-	struct cmd_imu_body imu;
+	imu_body imu;
 	
 	char endflag[4];
 } IMU_Package;
+
+struct cmd_select_normal_mode
+{
+	float imu_offset_x;
+	float imu_offset_y;
+	float imu_offset_z;
+	
+	float gps_offset_x;
+	float gps_offset_y;
+	float gps_offset_z;
+	
+	short res0;
+	char  key;
+	char  res1;
+	
+	float compass_bias_x;
+	float compass_bias_y;
+	float compass_bias_z;
+	
+	float compass_scale_x;
+	float compass_scale_y;
+	float compass_scale_z;
+};
+
+typedef struct tNormalMode
+{
+	char header[4];
+	short code;
+	short len;
+
+	struct cmd_select_normal_mode mode;
+	
+	char endflag[4];
+} NormalMode;
 
 #pragma pack()
 
@@ -69,9 +103,15 @@ bool GetIMU(IMU& imu);
 
 static bool CheckIsAtti(char* pData);
 
+static bool CheckIsMcMode(char* pData);
+
+static bool CheckIsHead(char* pData);
 static bool CheckIsTail(char* pData);
 
+static void GetKey();
 static void WaitImuReady();
+
+static bool SetFilter(int filter);
 
 void exit_imu_receive();
 
