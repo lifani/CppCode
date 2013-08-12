@@ -107,6 +107,7 @@ static bool CheckIsMcMode(char* pData);
 
 static bool CheckIsHead(char* pData);
 static bool CheckIsTail(char* pData);
+static bool Check4Q(char* pData);
 
 static void GetKey();
 static void WaitImuReady();

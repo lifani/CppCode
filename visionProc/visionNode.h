@@ -27,8 +27,8 @@ public:
 	char* lImage;
 	char* rImage;
 	
-	short lLen;
-	short rLen;
+	unsigned short lLen;
+	unsigned short rLen;
 	
 	IMU imu;
 

@@ -40,6 +40,7 @@ static int begin_pos = 0;
 static int end_pos = 0;
 static int fetch_pos = 0;
 static int store_pos = 0;
+static bool bReady = false;
 
 static bool imu_receive_running = true;
 
@@ -146,6 +147,8 @@ void* IMUCanRecv(void* arg)
 	
 	WaitImuReady();
 	
+	bReady = false;
+	
 	while (imu_receive_running)
 	{
 		if (read(s, &frame, sizeof(struct can_frame)) > 0)
@@ -188,6 +191,11 @@ void* IMUCanRecv(void* arg)
 						{
 							store_pos = fetch_pos;
 						}
+						
+						if (!Check4Q(P_IMU_DATA + fetch_pos))
+						{
+							store_pos = fetch_pos;
+						}
 					}
 					else
 					{
@@ -199,9 +207,9 @@ void* IMUCanRecv(void* arg)
 				}
 				
 				if (end_pos <= store_pos)
-				{	
-					//cout << "store_pos = " << store_pos << " end_pos = " << end_pos << endl;
+				{
 					store_pos = begin_pos;
+					bReady = true;
 				}
 			}
 		}
@@ -215,9 +223,19 @@ bool GetIMU(IMU& imu)
 	bool bSucceed = false;
 
 	pthread_mutex_lock(&imu_lock);
-	if (fetch_pos >= 0)
+	if (bReady)
 	{
-		imu_body* p = (imu_body*)(P_IMU_DATA + fetch_pos);
+		int get_pos = 0;
+		if (fetch_pos == 0)
+		{
+			get_pos = (MAX_IMU_NUM - 1) * sizeof(imu_body);
+		}
+		else
+		{
+			get_pos = fetch_pos - sizeof(imu_body);
+		}
+		
+		imu_body* p = (imu_body*)(P_IMU_DATA + get_pos);
 		
 		imu.acc_x = p->acc_x;
 		imu.acc_y = p->acc_y;
@@ -259,6 +277,34 @@ bool CheckIsHead(char* pData)
 bool CheckIsTail(char* pData)
 {
 	return pData[0] == 0x66 && pData[1] == 0xCC && pData[2] == 0x66 && pData[3] == 0xCC;
+}
+
+bool Check4Q(char* pData)
+{
+	if (NULL == pData)
+	{
+		return false;
+	}
+	
+	imu_body* p = (imu_body*)pData;
+	
+	if (p->q0 >= 1.0 || p->q1 >= 1.0 || p->q2 >= 1.0 || p->q3 >= 1.0)
+	{
+		return false;
+	}
+	
+	if (p->q0 <= -1.0 || p->q1 <= -1.0 || p->q2 <= -1.0 || p->q3 <= -1.0)
+	{
+		return false;
+	}
+	
+	float t = p->q0 * p->q0 + p->q1 * p->q1 + p->q2 * p-> q2 + p->q3 * p->q3;
+	if (t < 0.95 || t > 1.05)
+	{
+		return false;
+	}
+	
+	return true;
 }
 
 void GetKey()

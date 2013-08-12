@@ -76,8 +76,8 @@ void append_vision_queue(VisionNode*& pNode)
 	p->lImage = pNode->lImage;
 	p->rImage = pNode->rImage;
 	
-	p->lLen = (int)pNode->lLen;
-	p->rLen = (int)pNode->rLen;
+	p->lLen = (unsigned int)pNode->lLen;
+	p->rLen = (unsigned int)pNode->rLen;
 	
 	memcpy(&p->imu, &pNode->imu, sizeof(IMU));
 	
@@ -115,10 +115,16 @@ void OutFile(StoreVision* p)
 	write(imu_fd, szData, strlen(szData));
 	
 	sprintf(szData, "./%d/%06d_l.dat\0", uDirIndex, uFileIndex);
-	OutImg(p->lImage, p->lLen, szData);
+	if (!OutImg(p->lImage, p->lLen * 36, szData))
+	{
+		cout << "out put left img fail." << endl;
+	}
 	
 	sprintf(szData, "./%d/%06d_r.dat\0", uDirIndex, uFileIndex++);
-	OutImg(p->rImage, p->rLen, szData);
+	if (!OutImg(p->rImage, p->rLen * 36, szData))
+	{
+		cout << "out put right img fail." << endl;
+	}
 }
 
 bool CreateOutDir()
@@ -148,7 +154,7 @@ bool CreateOutDir()
 	return true;
 }
 
-bool OutImg(const char* pData, int size, const char* szPath)
+bool OutImg(const char* pData, unsigned int size, const char* szPath)
 {
 	if (NULL == pData || NULL == szPath)
 	{
@@ -165,6 +171,8 @@ bool OutImg(const char* pData, int size, const char* szPath)
 	write(fd, pData, size);
 	
 	close(fd);
+	
+	cout << "size = " << size << endl;
 	
 	return true;
 }

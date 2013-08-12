@@ -8,8 +8,8 @@ typedef struct tStoreVision
 	char* lImage;
 	char* rImage;
 	
-	int lLen;
-	int rLen;
+	unsigned int lLen;
+	unsigned int rLen;
 	
 	IMU imu;
 	
@@ -47,7 +47,7 @@ static void OutFile(StoreVision* p);
 
 static bool CreateOutDir();
 
-static bool OutImg(const char* pData, int size, const char* szPath);
+static bool OutImg(const char* pData, unsigned int size, const char* szPath);
 
 void exit_vision_store();
 

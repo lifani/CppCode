@@ -236,7 +236,7 @@ bool ReadImg(VisionNode*& pNode)
 		return false;
 	}
 	
-	pNode->lLen = *(short*)((char*)ptrData + 0);
+	pNode->lLen = *(unsigned short*)((unsigned char*)ptrData + 0);
 
 	pNode->rImage = new char[FRAME_DATA_LEN + 1];
 	if (NULL == pNode->rImage)
@@ -244,11 +244,16 @@ bool ReadImg(VisionNode*& pNode)
 		return false;
 	}
 	
-	pNode->rLen = *(short*)((char*)ptrData + FRAME_LEN);
+	pNode->rLen = *(unsigned short*)((unsigned char*)ptrData + FRAME_LEN);
+	
+	if (pNode->lLen > 995 || pNode->rLen > 995)
+	{
+		return false;
+	}
 	
 	pNode->lImage[FRAME_DATA_LEN] = '\0';
 	pNode->rImage[FRAME_DATA_LEN] = '\0';
-	
+
 	memcpy(pNode->lImage, (char*)ptrData + FRAME_HEAD_LEN, FRAME_DATA_LEN);
 	memcpy(pNode->rImage, (char*)ptrData + FRAME_LEN + FRAME_HEAD_LEN, FRAME_DATA_LEN);
 
@@ -257,7 +262,7 @@ bool ReadImg(VisionNode*& pNode)
 
 void writeFlg(int fd)
 {
-	write(fd, "1", 1);
+	write(fd, "0", 1);
 }
 
 // 线程退出函数
@@ -317,11 +322,16 @@ bool writeMapHex()
 	
 	fclose(pf);
 	
-	int ret = 0;
-	ret = write(fd, ptrData, 153600);
-	ret += write(fd, ptrData, 153600);
-	ret += write(fd, ptrData, 153600);
-	ret += write(fd, ptrData, 153600);
+	int ret = write(fd, ptrData, i);
+	/*
+	memcpy(ptrData, (char*)ptrData + 153600 * 1, 153600);
+	ret += write(fd, (char*)ptrData, 153600);
+	
+	memcpy(ptrData, (char*)ptrData + 153600 * 2, 153600);
+	ret += write(fd, (char*)ptrData, 153600);
+	
+	memcpy(ptrData, (char*)ptrData + 153600 * 3, 153600);
+	ret += write(fd, (char*)ptrData, 153600);*/
 	
 	printf(" write ret = %d \n", ret);
 	
