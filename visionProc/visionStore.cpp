@@ -14,6 +14,11 @@ static unsigned int uFileIndex = 0;
 
 static int imu_fd = 0;
 
+static const unsigned ARRAY_SIZE = 256;
+static StoreVision* pStoreVision[ARRAY_SIZE]; 
+static unsigned int uFetchPos = 0;
+static unsigned int uStorePos = 0;
+
 static bool store_vision_running = true;
 
 bool InitStore()
@@ -23,6 +28,8 @@ bool InitStore()
 		return false;
 	}
 	
+	memset((char*)pStoreVision, 0, ARRAY_SIZE * sizeof(StoreVision*));
+	
 	return true;
 }
 
@@ -30,25 +37,26 @@ void* store_vision(void* arg)
 {
 	StoreVision* p = NULL;
 	
-	unsigned int cnt = 0;
 	while (store_vision_running)
 	{
 		pthread_mutex_lock(&lock);
-		while (NULL == QHead)
+		while (NULL == pStoreVision[uFetchPos])
 		{
 			pthread_cond_wait(&ready, &lock);
 		}
 		
-		p 		= QHead;
-		QHead 	= QHead->next;
-		p->next = NULL;
+		p = pStoreVision[uFetchPos];
+		pStoreVision[uFetchPos++] = NULL;
+		
+		if (uFetchPos == ARRAY_SIZE)
+		{
+			uFetchPos = 0;
+		}
 		
 		pthread_mutex_unlock(&lock);
 		
 		// 调用输出函数
 		OutFile(p);
-		
-		printf("Receive %d frame img\n", cnt++);
 		
 		// 清除
 		delete p;
@@ -79,6 +87,8 @@ void append_vision_queue(VisionNode*& pNode)
 	p->lLen = (unsigned int)pNode->lLen;
 	p->rLen = (unsigned int)pNode->rLen;
 	
+	p->index = uFileIndex++;
+	
 	memcpy(&p->imu, &pNode->imu, sizeof(IMU));
 	
 	p->next = NULL;
@@ -88,15 +98,16 @@ void append_vision_queue(VisionNode*& pNode)
 	
 	pthread_mutex_lock(&lock);
 	
-	if (NULL == QHead)
+	if (NULL != pStoreVision[uStorePos])
 	{
-		QHead = p;
-		QTail = QHead->next;
+		delete pStoreVision[uStorePos];
 	}
-	else
+	
+	pStoreVision[uStorePos++] = p;
+	
+	if (uStorePos == ARRAY_SIZE)
 	{
-		QTail = p;
-		QTail = QTail->next;
+		uStorePos = 0;
 	}
 	
 	pthread_mutex_unlock(&lock);
@@ -114,13 +125,13 @@ void OutFile(StoreVision* p)
 	
 	write(imu_fd, szData, strlen(szData));
 	
-	sprintf(szData, "./%d/%06d_l.dat\0", uDirIndex, uFileIndex);
+	sprintf(szData, "./%d/%06d_l.dat\0", uDirIndex, p->index);
 	if (!OutImg(p->lImage, p->lLen * 36, szData))
 	{
 		cout << "out put left img fail." << endl;
 	}
 	
-	sprintf(szData, "./%d/%06d_r.dat\0", uDirIndex, uFileIndex++);
+	sprintf(szData, "./%d/%06d_r.dat\0", uDirIndex, p->index);
 	if (!OutImg(p->rImage, p->rLen * 36, szData))
 	{
 		cout << "out put right img fail." << endl;
@@ -172,7 +183,7 @@ bool OutImg(const char* pData, unsigned int size, const char* szPath)
 	
 	close(fd);
 	
-	cout << "size = " << size << endl;
+	//cout << "size = " << size << endl;
 	
 	return true;
 }

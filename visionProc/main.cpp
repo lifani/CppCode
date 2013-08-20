@@ -5,8 +5,13 @@
 #include "visionStore.h"
 #include "tools.h"
 #include "../VO/odometer.h"
+#include "../visionDsp/visionDsp.h"
+#include "../libproperty/cutils/properties.h"
 
 #include <signal.h>
+
+
+extern "C" int __system_properties_init(void);
 
 const string msg[THREAD_COUNT + 1] = 
 {
@@ -60,7 +65,7 @@ static void VisionSignal(int signo)
 	sleep(2);
 	
 	// 退出程序
-	exit(0);
+	NotifyExit(ALL_EXIT);
 }
 
 // 创建线程
@@ -106,11 +111,53 @@ static void InitBitMask()
 	return;
 }
 
+static void WaitFpgaReady()
+{
+	int fd = open(FPGA_READY, O_RDONLY);
+	if (fd < 0)
+	{
+		printf("open fpga_ready error...\n");	
+		return;
+	}
+	
+	char data;
+	while(1)
+	{
+		int err = read(fd, &data, 1);
+		if ((err > 0) && (data == '1')) 
+		{
+			printf("FPGA Ready to go...\n");
+			break;
+		}
+	}
+	
+	close(fd);
+}
+
+static void EnableFpga()
+{
+    property_set("sys.dsp.config", "1");	// set dsp speed
+    property_set("sys.fpga.config", "0");	// start fpga sample
+}
+
 // 初始化操作
 static bool Initialize()
 {
+	__system_properties_init();
+	
+	// wait for fpga
+	WaitFpgaReady();
+
 	// Init bit mask
 	InitBitMask();
+	
+#ifndef NO_DSP
+	if (0 == InitDsp())
+	{
+		Writelog(LOG_ERR, "Init dsp fail.", __FILE__, __LINE__);
+		return false;
+	}
+#endif
 	
 	if (NULL == InitMMap())
 	{
@@ -171,10 +218,20 @@ int main(int argc, char* argv[])
 	
 	Writelog(LOG_NOTICE, msg[0].c_str(), __FILE__, __LINE__);
 	
+	// sleep 3
+	sleep(3);
+	
+	// 
+	EnableFpga();
+	
 	// Start monitor
 	Monitor();
 
 	DestoryMMap();
+
+#ifndef NO_DSP
+	destoryDsp();
+#endif
 
 	Writelog(LOG_NOTICE, "Vision system exit normal.", __FILE__, __LINE__);
 	

@@ -25,6 +25,7 @@ typedef void (*EXIT_FUNC)();
 
 #define DEVICE_FILENAME "/dev/fpga"
 #define DEVICE_SYS_POLL "/sys/devices/platform/omap2-fpga/data"
+#define FPGA_READY  "/sys/class/gpio/gpio178/value"
 
 #define MAP_HEX_FILE	"./map_hex.txt"
 
@@ -55,7 +56,8 @@ static char BIT_MASK = 0x03;
 enum {
 	MONITOR_WAIT = 0,
 	PROC_EXIT,
-	READ_EXIT
+	READ_EXIT,
+	ALL_EXIT
 };
 
 typedef struct tIMU

@@ -36,7 +36,7 @@ static bool read_running = true;
 		pNode->next = NULL;
 
 		// 视觉算法处理
-		//Run(pNode->lImage, pNode->lLen, pNode->rImage, pNode->rLen, (char*)&pNode->imu);
+		Run(pNode->lImage, pNode->lLen, pNode->rImage, pNode->rLen, (char*)&pNode->imu);
 		
 #ifndef NO_STORE
 		append_vision_queue(pNode);
@@ -51,7 +51,10 @@ static bool read_running = true;
 		pthread_mutex_unlock(&qlock);
 	}
 	
-	NotifyExit(PROC_EXIT);
+	if (process_running)
+	{
+		NotifyExit(PROC_EXIT);
+	}
 
 	return NULL;
 }
@@ -179,7 +182,10 @@ void* read_vision(void* arg)
 	
 	pthread_exit();
 	
-	NotifyExit(READ_EXIT);
+	if (read_running)
+	{
+		NotifyExit(READ_EXIT);
+	}
 
 	return NULL;
 }
@@ -245,6 +251,9 @@ bool ReadImg(VisionNode*& pNode)
 	}
 	
 	pNode->rLen = *(unsigned short*)((unsigned char*)ptrData + FRAME_LEN);
+	
+	//cout << "lLen : " << pNode->lLen << endl;
+	//cout << "rLen : " << pNode->rLen << endl;
 	
 	if (pNode->lLen > 995 || pNode->rLen > 995)
 	{
@@ -323,15 +332,6 @@ bool writeMapHex()
 	fclose(pf);
 	
 	int ret = write(fd, ptrData, i);
-	/*
-	memcpy(ptrData, (char*)ptrData + 153600 * 1, 153600);
-	ret += write(fd, (char*)ptrData, 153600);
-	
-	memcpy(ptrData, (char*)ptrData + 153600 * 2, 153600);
-	ret += write(fd, (char*)ptrData, 153600);
-	
-	memcpy(ptrData, (char*)ptrData + 153600 * 3, 153600);
-	ret += write(fd, (char*)ptrData, 153600);*/
 	
 	printf(" write ret = %d \n", ret);
 	

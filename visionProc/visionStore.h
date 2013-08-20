@@ -11,11 +11,13 @@ typedef struct tStoreVision
 	unsigned int lLen;
 	unsigned int rLen;
 	
+	unsigned int index;
+	
 	IMU imu;
 	
 	struct tStoreVision* next;
 	
-	tStoreVision() : lImage(NULL), rImage(NULL), lLen(0), rLen(0), imu(), next(NULL)
+	tStoreVision() : lImage(NULL), rImage(NULL), lLen(0), rLen(0), index(0), imu(), next(NULL)
 	{
 	}
 	
@@ -32,6 +34,8 @@ typedef struct tStoreVision
 			delete []rImage;
 			rImage = NULL;
 		}
+		
+		//cout << "delete " << index << endl;
 		
 		next = NULL;
 	}

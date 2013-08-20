@@ -41,7 +41,10 @@ void Monitor()
 		pthread_cond_wait(&m_exit, &m_lock);
 	}
 	
-	StopAllThread();
+	if (iCond != ALL_EXIT)
+	{
+		StopAllThread();
+	}
 
 	pthread_mutex_unlock(&m_lock);
 }
