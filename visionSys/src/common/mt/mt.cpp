@@ -1,18 +1,39 @@
-#include "mt.h"
+#include <mt/mt.h>
 #include "transdata.h"
+#include "shmtrans.h"
+#include "msgtrans.h"
 
 using namespace std;
 
 static map<int, CTransData*> g_MapTransData;
 
-int CMt::shm_tm_init(unsigned int size, const char* path, int id, int num)
+int CMt::mt_init(int mode, const char* path , int id , unsigned int size , int num )
 {	
 	key_t key = ftok(path, id);
+	
+	cout << "path = " << path << endl;
+	cout << "id = " << id << endl;
+	cout << "key = " << key << endl;;
 	
 	map<int, CTransData*>::iterator it = g_MapTransData.find(key);
 	if (it == g_MapTransData.end())
 	{
-		CTransData* pTransData = new CTransData(size, num, key);
+		CTransData* pTransData = NULL;
+		switch (mode)
+		{
+		case SHM_MODE:
+			pTransData = new CShmTrans(size, num, key);
+			
+			break;
+		case SEM_MODE:
+			pTransData = new CMsgTrans(key);
+			break;
+		case SCK_MODE:
+			break;
+		default:
+			break;
+		}
+		
 		if (NULL == pTransData)
 		{
 			return -1;
@@ -29,7 +50,7 @@ int CMt::shm_tm_init(unsigned int size, const char* path, int id, int num)
 	return key;
 }
 
-int CMt::shm_tm_send(int tid, const char* ptr, unsigned int size)
+int CMt::mt_send(int tid, const char* ptr, unsigned int size)
 {
 	CTransData* p = g_MapTransData[tid];
 	if (NULL == p)
@@ -40,7 +61,7 @@ int CMt::shm_tm_send(int tid, const char* ptr, unsigned int size)
 	return p->write(ptr, size);
 }
 
-int CMt::shm_tm_recv(int tid, char* ptr, unsigned int size)
+int CMt::mt_recv(int tid, char* ptr, unsigned int size)
 {
 	CTransData* p = g_MapTransData[tid];
 	if (NULL == p)
@@ -51,7 +72,7 @@ int CMt::shm_tm_recv(int tid, char* ptr, unsigned int size)
 	return p->read(ptr, size);
 }
 
-void CMt::shm_tm_destory(int tid)
+void CMt::mt_destory(int tid)
 {
 	map<int, CTransData*>::iterator it = g_MapTransData.find(tid);
 	if (it != g_MapTransData.end())

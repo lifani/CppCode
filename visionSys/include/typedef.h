@@ -13,9 +13,15 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 
+#include <pthread.h>
+#include <poll.h>
+
+#include <vector>
 #include <map>
 #include <iostream>
 
 using namespace std;
+
+#define CONFIG_XML "./config.xml"
 
 #endif

@@ -1,0 +1,9 @@
+prefix=/home/liyao/Documents/Project/can
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: canutils
+Description: ifconfig like tool for can devices
+Version: 4.0.6
+Cflags: -I${includedir}

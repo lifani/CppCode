@@ -1,7 +1,7 @@
 #ifndef __SEM_H__
 #define __SEM_H__
 
-#include "../../../include/typedef.h"
+#include <typedef.h>
 
 union semun
 {

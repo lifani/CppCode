@@ -1,7 +1,7 @@
 TARGET = ../../../output/libmt.so
-OBJECTS = mt.o transdata.o vSem.o
-CFLAGS = -g -Wall
-LDFLAGS = -shared -fPIC
+OBJECTS = mt.o shmtrans.o vSem.o msgtrans.o
+CFLAGS = -g -Wall -fPIC -I../../../include
+LDFLAGS = -shared
 
 CXX = g++
 
@@ -11,11 +11,13 @@ $(TARGET) : $(OBJECTS)
 vSem.o : vSem.cpp vSem.h
 	$(CXX) $(CFLAGS) -c vSem.cpp vSem.h
 
-transdata.o : transdata.cpp transdata.h
-	$(CXX) $(CFLAGS) -c transdata.cpp transdata.h
-
-mt.o : mt.cpp mt.h
-	$(CXX) $(CFLAGS) -c mt.cpp mt.h
+shmtrans.o : shmtrans.cpp shmtrans.h
+	$(CXX) $(CFLAGS) -c shmtrans.cpp shmtrans.h
+	
+msgtrans.o : msgtrans.cpp msgtrans.h
+	$(CXX) $(CFLAGS) -c msgtrans.cpp msgtrans.h
+mt.o : mt.cpp
+	$(CXX) $(CFLAGS) -c mt.cpp
 	
 clean:
 	rm *.o
