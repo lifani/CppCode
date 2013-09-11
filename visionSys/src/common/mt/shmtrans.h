@@ -19,13 +19,13 @@ typedef struct _Head
 class CShmTrans : public CTransData
 {
 public :
-	CShmTrans(unsigned int size, unsigned int num, key_t key);
+	CShmTrans(unsigned int size, unsigned int size_out, unsigned int num, key_t key);
 
 	virtual int Init();
 	
-	virtual int write(const char* ptr, unsigned int size);
+	virtual int write(char* ptr, unsigned int* size);
 	
-	virtual int read(char* ptr, unsigned int size);
+	virtual int read(char* ptr, unsigned int* size);
 	
 	virtual void destory(CTransData* p);
 	
@@ -40,6 +40,10 @@ private :
 
 	const unsigned int m_num;
 	const unsigned int m_size;
+	
+	const unsigned int m_size_out;
+	
+	unsigned int m_tSize;
 	
 	Head* m_pHead;
 	

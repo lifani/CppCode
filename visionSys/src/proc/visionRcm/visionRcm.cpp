@@ -17,7 +17,6 @@ CCommonInterface* CreateInstance(const char* ppname, const char* pname)
 CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 : CBaseVision(ppname, pname)
 , m_bRunning(true)
-, m_key(0)
 {
 }
 
@@ -33,27 +32,10 @@ int CVisionRcm::Active()
 		return -1;
 	}
 	
-	string strAbsName = "";
+	m_bRunning = true;
 	
-	// 注册通信模块
-	vector<PROC_INFO>::iterator itr = m_vProcInfo.begin();
-	for (; itr != m_vProcInfo.end(); ++itr)
-	{
-		strAbsName = m_strCwd + string("/") + itr->pname;
-		
-		cout << "path = " << strAbsName << endl;
-		cout << "pid = " << itr->pid << endl;
-		key_t key = CMt::mt_init(SHM_MODE, strAbsName.c_str(), itr->pid, sizeof(SHM_DATA));
-		if (-1 == key)
-		{
-			return -1;
-		}
-		
-		m_mapShmKey[itr->pname] = key;
-		m_key = key;
-		
-		cout << "m_key = " << m_key << endl;
-	}
+	// 注册线程
+	RegisterPthread(&CBaseVision::Run1);
 	
 	return 0;
 }
@@ -65,10 +47,23 @@ void CVisionRcm::Run()
 		SHM_DATA shm_data;
 		sprintf(shm_data.data, "%s\0", m_pname.c_str());
 		
-		if (CMt::mt_send(m_key, (char*)&shm_data, sizeof(SHM_DATA)) == -1)
+		unsigned int size = sizeof(SHM_DATA);
+		if (SendData(string("visionVelocity"), (char*)&shm_data, &size) == -1)
 		{
 			cout << "send error." << endl;
 		}
+		
+		cout << m_pname << " : " << shm_data.data << endl;
+		
+		sleep(2);
+	}
+}
+
+void CVisionRcm::Run1()
+{
+	while(m_bRunning)
+	{
+		// 读取IMU数据
 		
 		sleep(2);
 	}

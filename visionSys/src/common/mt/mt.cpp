@@ -7,13 +7,9 @@ using namespace std;
 
 static map<int, CTransData*> g_MapTransData;
 
-int CMt::mt_init(int mode, const char* path , int id , unsigned int size , int num )
+int CMt::mt_init(int mode, const char* path , int id , unsigned int size , unsigned int size_out, int num )
 {	
 	key_t key = ftok(path, id);
-	
-	cout << "path = " << path << endl;
-	cout << "id = " << id << endl;
-	cout << "key = " << key << endl;;
 	
 	map<int, CTransData*>::iterator it = g_MapTransData.find(key);
 	if (it == g_MapTransData.end())
@@ -22,7 +18,7 @@ int CMt::mt_init(int mode, const char* path , int id , unsigned int size , int n
 		switch (mode)
 		{
 		case SHM_MODE:
-			pTransData = new CShmTrans(size, num, key);
+			pTransData = new CShmTrans(size, size_out, num, key);
 			
 			break;
 		case SEM_MODE:
@@ -50,7 +46,7 @@ int CMt::mt_init(int mode, const char* path , int id , unsigned int size , int n
 	return key;
 }
 
-int CMt::mt_send(int tid, const char* ptr, unsigned int size)
+int CMt::mt_send(int tid, char* ptr, unsigned int* size)
 {
 	CTransData* p = g_MapTransData[tid];
 	if (NULL == p)
@@ -61,7 +57,7 @@ int CMt::mt_send(int tid, const char* ptr, unsigned int size)
 	return p->write(ptr, size);
 }
 
-int CMt::mt_recv(int tid, char* ptr, unsigned int size)
+int CMt::mt_recv(int tid, char* ptr, unsigned int* size)
 {
 	CTransData* p = g_MapTransData[tid];
 	if (NULL == p)

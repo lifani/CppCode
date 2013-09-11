@@ -25,16 +25,16 @@ int CMsgTrans::Init()
 	return 0;
 }
 
-int CMsgTrans::write(const char* ptr, unsigned int size)
+int CMsgTrans::write(char* ptr, unsigned int* size)
 {
-	return msgsnd(m_msgid, ptr, size, IPC_NOWAIT);
+	return msgsnd(m_msgid, ptr, *size, IPC_NOWAIT);
 }
 
-int CMsgTrans::read(char* ptr, unsigned int size)
+int CMsgTrans::read(char* ptr, unsigned int* size)
 {
 	long type = *(long*)ptr;
 	
-	return msgrcv(m_msgid, ptr, size, type, MSG_NOERROR | IPC_NOWAIT);
+	return msgrcv(m_msgid, ptr, *size, type, MSG_NOERROR | IPC_NOWAIT);
 }
 
 void CMsgTrans::destory(CTransData* p)

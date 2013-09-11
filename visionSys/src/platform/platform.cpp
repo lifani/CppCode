@@ -1,7 +1,10 @@
 #include <platform/platform.h>
+#include <signal.h>
 #include "monitor.h"
 
-string getProcName(const char* in)
+static CCommonInterface* pCommonI = NULL;
+
+static string getProcName(const char* in)
 {
 	string out = "";
 	
@@ -26,6 +29,18 @@ string getProcName(const char* in)
 	return out;
 }
 
+static void sig_handle(int signo)
+{
+	if (SIGINT == signo)
+	{
+		cout << "recv sigint." << endl;
+		if (NULL != pCommonI)
+		{
+			pCommonI->Deactive();
+		}
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	string ppname = "";
@@ -42,6 +57,8 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	
+	signal(SIGINT, sig_handle);
+	
 	vector<xml_node> vXmlNode;
 	
 	// 加载配置文件
@@ -52,14 +69,12 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	
-	CCommonInterface* p = NULL;
-	
 	do {
 	
 		InitMonitor();
 	
-		p = CreateInstance(ppname.c_str(), pname.c_str());
-		if (NULL == p)
+		pCommonI = CreateInstance(ppname.c_str(), pname.c_str());
+		if (NULL == pCommonI)
 		{
 			cout << "create instance error." << endl;
 			break;
@@ -86,7 +101,7 @@ int main(int argc, char* argv[])
 					}
 					else if (pid > 0)
 					{
-						p->AddSonProcInfo(it->name.c_str(), pid);
+						pCommonI->AddSonProcInfo(it->name.c_str(), pid);
 					}
 					else if (pid == 0)
 					{
@@ -116,7 +131,7 @@ int main(int argc, char* argv[])
 		}
 		
 		// 激活进程
-		if (-1 == p->Active())
+		if (-1 == pCommonI->Active())
 		{
 			cout << pname << " active error." << endl;
 			break;
@@ -124,17 +139,17 @@ int main(int argc, char* argv[])
 		
 		// 启动线程
 		// 执行
-		if (-1 == p->Action())
+		if (-1 == pCommonI->Action())
 		{
 			cout << pname << " action error." << endl;
 		}
-		
+
 		// 去激活
 		Monitor();
 		
 	} while (0);
 	
-	delete p;
+	delete pCommonI;
 	
 	return 0;
 }

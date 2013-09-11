@@ -30,16 +30,6 @@ int CVisionVelocity::Active()
 		return -1;
 	}
 	
-	string strAbsName = m_strCwd + string("/") + m_pname;
-		
-	// ×¢²áÍ¨ÐÅÄ£¿é
-	if ((m_shmkey = CMt::mt_init(SHM_MODE, strAbsName.c_str(), m_pid, sizeof(SHM_DATA))) == -1)
-	{
-		return -1;
-	}
-	
-	cout << "m_shmkey = " << m_shmkey << endl;
-	
 	m_bRunning = true;
 	
 	return 0;
@@ -50,14 +40,18 @@ void CVisionVelocity::Run()
 	while (m_bRunning)
 	{
 		SHM_DATA shm_data;
+		sprintf(shm_data.data, "%s\0", m_pname.c_str());
 		
-		if (-1 == CMt::mt_recv(m_shmkey, (char*)&shm_data, sizeof(SHM_DATA)))
+		unsigned int size = strlen(shm_data.data);
+		if (-1 == RecvData(m_pname, (char*)&shm_data, &size))
 		{
 			sleep(50);
 			cout << "recv data error" << endl;
 		}
 		
-		cout << shm_data.data << endl;
+		cout << m_pname << " : " << shm_data.data << endl;
+		
+		sleep(2);
 	}
 }
 

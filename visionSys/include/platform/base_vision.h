@@ -30,11 +30,20 @@ typedef void (*FUNC) (union sigval val);
 
 class CBaseVision;
 
+typedef void (CBaseVision::*PFUNC)();
+
+typedef struct _PTHREAD_PFUNC
+{
+	CBaseVision* pBaseVision;
+	PFUNC	pFunc;
+	pthread_t tid;
+} PTHREAD_PFUNC;
+
 // 发送心跳
-static void SendHeartBeat(sigval_t st);
+void SendHeartBeat(sigval_t st);
 
 // 接收心跳
-static void RecvHeartBeat(sigval_t st);
+void RecvHeartBeat(sigval_t st);
 
 void* StartPthread(void* arg);
 
@@ -63,13 +72,22 @@ public :
 	
 	virtual void Run();
 	
+	// 预备线程函数
+	virtual void Run1();
+	
+	virtual void Run2();
+	
+	virtual void Run3();
+	
+	int SendData(string pname, char* ptr, unsigned int* len);
+	
+	int RecvData(string pname, char* ptr, unsigned int* len);
+	
+	void RegisterPthread(PFUNC func);
+	
 private :
 
 	void GetProcInfo();
-	
-	int SendData(key_t key, const char* ptr, int len);
-	
-	int RecvData(key_t key, char* ptr, int len);
 	
 public :
 	
@@ -79,8 +97,7 @@ public :
 	
 	pid_t m_ppid;
 	pid_t m_pid;
-	
-	key_t m_shmkey;
+
 	key_t m_skey;
 	key_t m_rkey;
 
@@ -89,10 +106,11 @@ public :
 	
 	int m_times;
 	
-	pthread_t m_tid;
-	
 	vector<PROC_INFO> m_vProcInfo;
 	map<string, key_t> m_mapShmKey;
+	
+	vector<PFUNC> m_vPfunc;
+	vector<PTHREAD_PFUNC*> m_vPthread;
 };
 
 #endif

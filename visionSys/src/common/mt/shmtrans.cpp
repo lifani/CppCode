@@ -1,10 +1,12 @@
 #include <typedef.h>
 #include "shmtrans.h"
 
-CShmTrans::CShmTrans(unsigned int size, unsigned int num, key_t key) 
+CShmTrans::CShmTrans(unsigned int size, unsigned int size_out, unsigned int num, key_t key) 
 : m_initialized(-1) 
 , m_num(num)
 , m_size(size)
+, m_size_out(size_out)
+, m_tSize(0)
 , m_pHead(NULL)
 , m_shmid(-1)
 , m_ptr(NULL)
@@ -39,8 +41,8 @@ int CShmTrans::Init()
 		return -1;
 	}
 	
-	unsigned int tSize = m_size * m_num + sizeof(Head);
-	if ((m_shmid = shmget(m_key, tSize, IPC_CREAT | SHM_R | SHM_W)) == -1)
+	m_tSize = m_size * m_num + sizeof(Head);
+	if ((m_shmid = shmget(m_key, m_tSize + m_size_out, IPC_CREAT | SHM_R | SHM_W)) == -1)
 	{
 		return -1;
 	}
@@ -65,14 +67,14 @@ void CShmTrans::destory(CTransData* p)
 	delete p;
 }
 
-int CShmTrans::write(const char* ptr, unsigned int size)
+int CShmTrans::write(char* ptr, unsigned int* size)
 {
 	if (NULL == m_ptr)
 	{
 		return -1;
 	}
 	
-	int len = size > m_size ? m_size : size;
+	int len = *size > m_size ? m_size : *size;
 	
 	m_sem.P();
 
@@ -94,22 +96,34 @@ int CShmTrans::write(const char* ptr, unsigned int size)
 		}
 	}
 	
+	if (m_size_out > 0)
+	{
+		memcpy(ptr, m_ptr + m_tSize, m_size_out);
+		*size = m_size_out;
+	}
+	
 	m_sem.V();
 	
 	return len;
 }
 
-int CShmTrans::read(char* ptr, unsigned int size)
+int CShmTrans::read(char* ptr, unsigned int* size)
 {
 	if (NULL == m_ptr)
 	{
 		return -1;
 	}
 	
-	int len = size > m_size ? m_size : size;
+	int len = *size > m_size_out ? m_size_out : *size;
 	
 	m_sem.P();
-
+	
+	if (m_size_out > 0 && len > 0)
+	{
+		memcpy(m_ptr + m_tSize, ptr, len);
+	}
+	
+	len = m_size;
 	if (m_pHead->cnt == 0)
 	{
 		len = 0;
@@ -117,7 +131,7 @@ int CShmTrans::read(char* ptr, unsigned int size)
 	else
 	{
 		char* fetchPtr = m_ptr + sizeof(Head) + m_pHead->fetch_pos * m_size;
-		memcpy(ptr, fetchPtr, len);
+		memcpy(ptr, fetchPtr, m_size);
 		
 		++m_pHead->fetch_pos;
 		--m_pHead->cnt;

@@ -12,9 +12,9 @@ public :
 	
 	virtual int Init();
 	
-	virtual int write(const char* ptr, unsigned int size);
+	virtual int write( char* ptr, unsigned int* size);
 	
-	virtual int read(char* ptr, unsigned int size);
+	virtual int read(char* ptr, unsigned int* size);
 	
 	virtual void destory(CTransData* p);
 private :

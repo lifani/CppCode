@@ -16,12 +16,12 @@ public :
 	virtual int Deactive();
 
 	virtual void Run();
+	
+	virtual void Run1();
 
 private :
 
 	bool m_bRunning;
-	
-	key_t m_key;
 };
 
 #endif
