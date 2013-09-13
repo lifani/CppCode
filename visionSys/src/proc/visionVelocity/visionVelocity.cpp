@@ -37,19 +37,26 @@ int CVisionVelocity::Active()
 
 void CVisionVelocity::Run()
 {
+	VELOCITY_DATA tVelocity;
+	FEEDBACK_DATA tFeedback;
+	
+	unsigned int size = 0;
+	
 	while (m_bRunning)
 	{
-		SHM_DATA shm_data;
-		sprintf(shm_data.data, "%s\0", m_pname.c_str());
-		
-		unsigned int size = strlen(shm_data.data);
-		if (-1 == RecvData(m_pname, (char*)&shm_data, &size))
+		if (-1 == RecvData(m_pname, (char*)&tVelocity, &size))
 		{
-			sleep(50);
 			cout << "recv data error" << endl;
+			
+			continue;
 		}
 		
-		cout << m_pname << " : " << shm_data.data << endl;
+		cout << m_pname << " : " << (char*)&tVelocity << endl;
+		
+		// 算法接口
+		
+		// 数据反馈
+		memcpy((char*)&tVelocity, (char*)tFeedback, size);
 		
 		sleep(2);
 	}

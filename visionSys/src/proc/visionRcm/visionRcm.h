@@ -21,7 +21,32 @@ public :
 
 private :
 
+	int InitMMap();
+
+	void process_poll(struct pollfd* p);
+	
+	bool isReady();
+	
+	void writeFlg(int fd);
+
+	void Wait4FPGAReady();
+	
+	int WriteParameter(int type = 0);
+	
+	int ReadVelocityData(VELOCITY_DATA& tVelocity);
+	
+	int ReadRectifiedImg(RECTIFIED_IMG& tRectified);
+	
+private :
+
 	bool m_bRunning;
+	
+	int st_fd;
+	int m_fd;
+	
+	unsigned char* m_ptr;
+	
+	int m_sendFlg;
 };
 
 #endif

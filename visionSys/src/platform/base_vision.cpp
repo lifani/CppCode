@@ -142,15 +142,16 @@ int CBaseVision::Active()
 	m_mapShmKey.clear();
 	
 	string strAbsName = "";
-	
+
 	// 存在父进程？
 	if (!m_ppname.empty())
 	{
 		strAbsName = m_strCwd + string("/") + m_pname;
 		
+
 		key_t shmkey;
 		// 注册通信模块
-		if ((shmkey = CMt::mt_init(SHM_MODE, strAbsName.c_str(), m_pid, sizeof(SHM_DATA), sizeof(SHM_DATA))) == -1)
+		if ((shmkey = CMt::mt_init(SHM_MODE, strAbsName.c_str(), m_pid, GetShmSize(m_pname), sizeof(FEEDBACK_DATA))) == -1)
 		{
 			return -1;
 		}
@@ -180,7 +181,7 @@ int CBaseVision::Active()
 		{
 			strAbsName = m_strCwd + string("/") + itr->pname;
 
-			key_t key = CMt::mt_init(SHM_MODE, strAbsName.c_str(), itr->pid, sizeof(SHM_DATA), sizeof(SHM_DATA));
+			key_t key = CMt::mt_init(SHM_MODE, strAbsName.c_str(), itr->pid, GetShmSize(itr->pname), sizeof(FEEDBACK_DATA));
 			if (-1 == key)
 			{
 				return -1;
@@ -302,6 +303,21 @@ void CBaseVision::GetProcInfo()
 	getcwd(szPath, sizeof(szPath));
 	
 	m_strCwd = string(szPath);
+}
+
+unsigned int CBaseVision::GetShmSize(string pname)
+{
+	unsigned int size = sizeof(SHM_DATA);
+	if (pname.compare("visionVelocity") == 0)
+	{
+		size = sizeof(VELOCITY_DATA);
+	}
+	else if (pname.compare("visionBm") == 0)
+	{
+		size = sizeof(RECTIFIED_IMG);
+	}
+	
+	return size;
 }
 
 void CBaseVision::AddSonProcInfo(const char* pname, int pid)

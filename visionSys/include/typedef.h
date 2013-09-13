@@ -12,6 +12,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
+#include <sys/mman.h>
 
 #include <pthread.h>
 #include <poll.h>

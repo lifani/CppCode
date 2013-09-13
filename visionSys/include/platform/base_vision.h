@@ -7,37 +7,8 @@
 #include <signal.h>
 #include <time.h>
 
-typedef struct _PROC_INFO
-{
-	string pname;
-	pid_t pid;
-	int times;
-} PROC_INFO;
+#include <datatype.h>
 
-typedef struct _HeartBeat
-{
-	long  type;
-	pid_t pid;
-
-} HeartBeat;
-
-typedef struct _SHM_DATA
-{
-	char data[256];
-} SHM_DATA;
-
-typedef void (*FUNC) (union sigval val);
-
-class CBaseVision;
-
-typedef void (CBaseVision::*PFUNC)();
-
-typedef struct _PTHREAD_PFUNC
-{
-	CBaseVision* pBaseVision;
-	PFUNC	pFunc;
-	pthread_t tid;
-} PTHREAD_PFUNC;
 
 // ·¢ËÍÐÄÌø
 void SendHeartBeat(sigval_t st);
@@ -88,6 +59,8 @@ public :
 private :
 
 	void GetProcInfo();
+	
+	unsigned int GetShmSize(string pname);
 	
 public :
 	
