@@ -5,8 +5,12 @@
 #define DEVICE_SYS_POLL "/sys/devices/platform/omap2-fpga/data"
 #define FPGA_READY  	"/sys/class/gpio/gpio178/value"
 #define MAP_HEX_FILE 	"/cache/map_hex.txt"
+#define VELOCITY_PATH	"./v"
+#define RECTIFIED_PATH	"./r"
 
 #define MMAP_SIZE 0x00100000
+
+const unsigned int QUEUE_SIZE = 10;
 
 // img cols
 const unsigned int IMG_WIDTH = 320;

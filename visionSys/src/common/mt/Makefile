@@ -3,7 +3,7 @@ OBJECTS = mt.o shmtrans.o vSem.o msgtrans.o
 CFLAGS = -g -Wall -fPIC -I../../../include
 LDFLAGS = -shared
 
-CXX = g++
+CXX = arm-linux-g++
 
 $(TARGET) : $(OBJECTS)
 	$(CXX) -o $(TARGET) $(OBJECTS) $(LDFLAGS)

@@ -5,13 +5,13 @@
 
 using namespace std;
 
-static map<int, CTransData*> g_MapTransData;
+static map<key_t, CTransData*> g_MapTransData;
 
 int CMt::mt_init(int mode, const char* path , int id , unsigned int size , unsigned int size_out, int num )
 {	
 	key_t key = ftok(path, id);
 	
-	map<int, CTransData*>::iterator it = g_MapTransData.find(key);
+	map<key_t, CTransData*>::iterator it = g_MapTransData.find(key);
 	if (it == g_MapTransData.end())
 	{
 		CTransData* pTransData = NULL;
@@ -46,7 +46,7 @@ int CMt::mt_init(int mode, const char* path , int id , unsigned int size , unsig
 	return key;
 }
 
-int CMt::mt_send(int tid, char* ptr, unsigned int* size)
+int CMt::mt_send(key_t tid, char* ptr, unsigned int* size)
 {
 	CTransData* p = g_MapTransData[tid];
 	if (NULL == p)
@@ -57,7 +57,7 @@ int CMt::mt_send(int tid, char* ptr, unsigned int* size)
 	return p->write(ptr, size);
 }
 
-int CMt::mt_recv(int tid, char* ptr, unsigned int* size)
+int CMt::mt_recv(key_t tid, char* ptr, unsigned int* size)
 {
 	CTransData* p = g_MapTransData[tid];
 	if (NULL == p)
@@ -68,9 +68,9 @@ int CMt::mt_recv(int tid, char* ptr, unsigned int* size)
 	return p->read(ptr, size);
 }
 
-void CMt::mt_destory(int tid)
+void CMt::mt_destory(key_t tid)
 {
-	map<int, CTransData*>::iterator it = g_MapTransData.find(tid);
+	map<key_t, CTransData*>::iterator it = g_MapTransData.find(tid);
 	if (it != g_MapTransData.end())
 	{
 		it->second->destory(it->second);

@@ -32,6 +32,14 @@ int CVisionVelocity::Active()
 	
 	m_bRunning = true;
 	
+	if (m_VisionStore.Init(VELOCITY_PATH))
+	{
+		return -1;
+	}
+	
+	// 注册线程
+	RegisterPthread(&CBaseVision::Run1);
+	
 	return 0;
 }
 
@@ -44,21 +52,35 @@ void CVisionVelocity::Run()
 	
 	while (m_bRunning)
 	{
-		if (-1 == RecvData(m_pname, (char*)&tVelocity, &size))
+		int len = 0;
+		if (-1 == (len = RecvData(m_pname, (char*)&tVelocity, &size)))
 		{
 			cout << "recv data error" << endl;
 			
 			continue;
 		}
 		
-		cout << m_pname << " : " << (char*)&tVelocity << endl;
+		if (len == 0)
+		{
+			continue;
+		}
 		
 		// 算法接口
 		
-		// 数据反馈
-		memcpy((char*)&tVelocity, (char*)tFeedback, size);
+		// 存入存储模块
+		m_VisionStore.push(tVelocity.lCloud, tVelocity.lcnt * POINT_LEN, tVelocity.rCloud, tVelocity.rcnt * POINT_LEN);
 		
-		sleep(2);
+		// 数据反馈
+		memcpy((char*)&tVelocity, (char*)&tFeedback, size);
+		
+	}
+}
+
+void CVisionVelocity::Run1()
+{
+	while(m_bRunning)
+	{
+		m_VisionStore.pop();
 	}
 }
 

@@ -20,24 +20,7 @@ void SendHeartBeat(sigval_t st)
 {
 	CBaseVision* pBaseVision = (CBaseVision*)st.sival_ptr;
 	
-	HeartBeat beat;
-	beat.type = pBaseVision->m_ppid;
-	beat.pid = pBaseVision->m_pid;
-	
-	unsigned int size = sizeof(HeartBeat);
-	if (CMt::mt_send(pBaseVision->m_skey, (char*)&beat, &size) == -1)
-	{
-		pBaseVision->m_times--;
-	}
-	else
-	{
-		pBaseVision->m_times = 5;
-	}
-	
-	if (0 == pBaseVision->m_times)
-	{
-		pBaseVision->Deactive();
-	}
+	pBaseVision->SndHeartBeat();
 }
 
 // ½ÓÊÕÐÄÌø
@@ -45,29 +28,7 @@ void RecvHeartBeat(sigval_t st)
 {
 	CBaseVision* pBaseVision = (CBaseVision*)st.sival_ptr;
 	
-	vector<PROC_INFO>& vProcInfo = pBaseVision->m_vProcInfo;
-	
-	vector<PROC_INFO>::iterator itr = vProcInfo.begin();
-	for(; itr != vProcInfo.end(); ++itr)
-	{
-		HeartBeat beat;
-		beat.type = pBaseVision->m_pid;
-
-		unsigned int size = sizeof(HeartBeat);
-		if (CMt::mt_recv(pBaseVision->m_rkey, (char*)&beat, &size) == -1)
-		{
-			itr->times = itr->times > 0 ? --itr->times : 0;
-		}
-		else
-		{
-			itr->times = 5;
-		}
-		
-		if (itr->times == 0)
-		{
-			cout << "proc " << itr->pname << " lost connection" << endl;
-		}
-	}
+	pBaseVision->RcvHeartBeat();
 }
 
 void* StartPthread(void* arg)
@@ -250,7 +211,14 @@ int CBaseVision::Deactive()
 		vector<PROC_INFO>::iterator itrProc = m_vProcInfo.begin();
 		for (; itrProc != m_vProcInfo.end(); ++itrProc)
 		{	
-			kill(itrProc->pid, SIGINT);
+			char szCmd[256] = {0};
+			sprintf(szCmd, "kill -2 %d", itrProc->pid);
+			FILE* fp = popen(szCmd, "r");
+			if (NULL == fp)
+			{
+				pclose(fp);
+			}
+			//kill(itrProc->pid, SIGINT);
 		}
 	}
 	
@@ -292,6 +260,53 @@ void CBaseVision::Run2()
 void CBaseVision::Run3()
 {
 
+}
+
+void CBaseVision::SndHeartBeat()
+{
+	HeartBeat beat;
+	beat.type = m_ppid;
+	beat.pid = m_pid;
+	
+	unsigned int size = sizeof(HeartBeat);
+	if (CMt::mt_send(m_skey, (char*)&beat, &size) == -1)
+	{
+		m_times--;
+	}
+	else
+	{
+		m_times = 5;
+	}
+	
+	if (0 == m_times)
+	{
+		Deactive();
+	}
+}
+
+void CBaseVision::RcvHeartBeat()
+{
+	vector<PROC_INFO>::iterator itr = m_vProcInfo.begin();
+	for(; itr != m_vProcInfo.end(); ++itr)
+	{
+		HeartBeat beat;
+		beat.type = m_pid;
+
+		unsigned int size = sizeof(HeartBeat);
+		if (CMt::mt_recv(m_rkey, (char*)&beat, &size) == -1)
+		{
+			itr->times--;
+		}
+		else
+		{
+			itr->times = 5;
+		}
+		
+		if (itr->times == 0)
+		{
+			cout << "proc " << itr->pname << " lost connection" << endl;
+		}
+	}
 }
 
 void CBaseVision::GetProcInfo()

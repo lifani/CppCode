@@ -50,6 +50,10 @@ public :
 	
 	virtual void Run3();
 	
+	void SndHeartBeat();
+	
+	void RcvHeartBeat();
+	
 	int SendData(string pname, char* ptr, unsigned int* len);
 	
 	int RecvData(string pname, char* ptr, unsigned int* len);

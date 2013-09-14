@@ -102,7 +102,9 @@ void CVisionRcm::Run()
 		
 		// 发送点云数据
 		size = sizeof(VELOCITY_DATA);
-		if (SendData(string("visionVelocity"), (char*)&tVelocity, &size) == -1)
+		
+		int len = 0;
+		if ((len = SendData(string("visionVelocity"), (char*)&tVelocity, &size)) == -1)
 		{
 			cout << "send cloud error." << endl;
 		}
@@ -118,8 +120,6 @@ void CVisionRcm::Run()
 				cout << "send img error." << endl;
 			}
 		}
-		
-		cout << m_pname << " : " << (char*)&tVelocity << endl;
 	}
 }
 
@@ -136,7 +136,7 @@ void CVisionRcm::Run1()
 int CVisionRcm::Deactive()
 {
 	m_bRunning = false;
-
+	
 	// 关闭轮询文件描述符
 	close(st_fd);
 	
@@ -264,13 +264,13 @@ int CVisionRcm::WriteParameter(int type)
 	FILE* pf = fopen(MAP_HEX_FILE, "r");
 	if (NULL == pf)
 	{
-		delete pData;
+		delete []pData;
 		return false;
 	}
-	
+
 	unsigned int hex = 0;
 	unsigned int i = 0;
-	
+
 	while (EOF != fscanf(pf, "%x", &hex))
 	{
 		unsigned int* pHex = (unsigned int*)((unsigned char*)pData + i);
@@ -278,36 +278,38 @@ int CVisionRcm::WriteParameter(int type)
 		
 		i += 4;
 	}
-	
+
 	fclose(pf);
 	
-	while (i > 0 && NULL != pData)
+	unsigned char* pos = pData;
+
+	while (i > 0 && NULL != pos)
 	{
 		int len = i > IMG_SIZE ? IMG_SIZE : i;
-		memcpy(m_ptr, pData, len);
+		memcpy(m_ptr, pos, len);
 		
 		i -= len;
-		pData += len;
+		pos += len;
 		
 		if (len != write(m_fd, NULL, len))
 		{
 			cout << "write prameter error." << endl;
 			
-			delete pData;
+			delete []pData;
 			return -1;
 		}
 	}
-	
-	delete pData;
+	delete []pData;
 	
 	// enable fpga
 	property_set("sys.fpga_parameter.config", "3");
 	property_set("sys.fpga.config", "0");
+	
 	return 0;
 }
 
 int CVisionRcm::ReadVelocityData(VELOCITY_DATA& tVelocity)
-{
+{	
 	if (NULL == m_ptr)
 	{
 		return -1;

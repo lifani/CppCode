@@ -1,16 +1,16 @@
-#ifndef __VISION_VELOCITY_H__
-#define __VISION_VELOCITY_H__
+#ifndef __VISION_BM_H__
+#define __VISION_BM_H__
 
 #include <platform/base_vision.h>
 #include <platform/visionStore.h>
 
-class CVisionVelocity : public CBaseVision
+class CVisionBm : public CBaseVision
 {
 public :
-
-	CVisionVelocity(const char* ppname, const char* pname);
 	
-	virtual ~CVisionVelocity();
+	CVisionBm(const char* ppname, const char* pname);
+	
+	virtual ~CVisionBm();
 	
 	virtual int Active();
 	
@@ -20,8 +20,8 @@ public :
 	
 	virtual void Run1();
 
-private:
-	
+private :
+
 	bool m_bRunning;
 	
 	CVisionStore m_VisionStore;
