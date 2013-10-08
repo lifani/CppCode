@@ -46,7 +46,7 @@ int CVisionStore::Init(const string& path)
 	return 0;
 }
 
-int CVisionStore::push(unsigned char* lptr, unsigned int lLen, unsigned char* rptr, unsigned int rLen)
+int CVisionStore::push(unsigned char* lptr, unsigned int lLen, unsigned char* rptr, unsigned int rLen, IMU* pImu)
 {
 	STORE_NODE* node = new STORE_NODE;
 	if (NULL == node)
@@ -64,11 +64,16 @@ int CVisionStore::push(unsigned char* lptr, unsigned int lLen, unsigned char* rp
 	
 	memcpy((char*)node->rImg, (char*)rptr, len);
 	
+	if (NULL != pImu)
+	{
+		node->imu = *pImu;
+	}
+	
 	node->index = m_index++;
 	
 	pthread_mutex_lock(&m_lock);
 	
-	if (m_cnt == QUEUE_SIZE)
+	if (m_cnt == STORE_QUUE_SIZE)
 	{
 		delete node;
 		node = NULL;
@@ -80,7 +85,7 @@ int CVisionStore::push(unsigned char* lptr, unsigned int lLen, unsigned char* rp
 	
 	m_StoreQueue[m_store] = node;
 	
-	if (++m_store == QUEUE_SIZE)
+	if (++m_store == STORE_QUUE_SIZE)
 	{
 		m_store = 0;
 	}
@@ -107,7 +112,7 @@ int CVisionStore::pop()
 	p = m_StoreQueue[m_fetch];
 	m_StoreQueue[m_fetch] = NULL;
 	
-	if (++m_fetch == QUEUE_SIZE)
+	if (++m_fetch == STORE_QUUE_SIZE)
 	{
 		m_fetch = 0;
 	}
@@ -147,16 +152,17 @@ bool CVisionStore::OutImg(const char* pData, unsigned int size, const char* szPa
 		return false;
 	}
 	
-	int fd = open(szPath, O_WRONLY | O_CREAT, 0666);
-	if (-1 == fd)
+	FILE* pf = fopen(szPath, "wb");
+	if (NULL == pf)
 	{
 		return false;
 	}
 	
 	// write data
-	write(fd, pData, size);
-	
-	close(fd);
+	fwrite(pData, size, 1, pf);
+
+	fclose(pf);
 	
 	return true;
 }
+

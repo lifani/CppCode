@@ -4,6 +4,22 @@
 #include <platform/base_vision.h>
 #include <platform/visionStore.h>
 
+class CVelocityStore : public CVisionStore
+{
+public :
+	CVelocityStore();
+	
+	~CVelocityStore();
+	
+	int Init(const string& path);
+
+	void OutFile(STORE_NODE* p);
+	
+private :
+
+	int m_fd;
+};
+
 class CVisionVelocity : public CBaseVision
 {
 public :
@@ -24,7 +40,7 @@ private:
 	
 	bool m_bRunning;
 	
-	CVisionStore m_VisionStore;
+	CVelocityStore m_Store;
 };
 
 #endif

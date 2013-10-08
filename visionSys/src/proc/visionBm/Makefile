@@ -4,7 +4,7 @@ OBJECTS = visionBm.o
 
 CFLAGS = -g -Wall -I../../../include -I../../../third
 
-LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -lplatform -lmt -lxml -lpthread -lrt
+LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -lplatform -lmt -lxml -llog -lpthread -lrt -lbm
 
 CXX = arm-linux-g++
 

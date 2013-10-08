@@ -12,6 +12,8 @@ typedef struct _STORE_NODE
 	unsigned int lLen;
 	unsigned int rLen;
 	
+	IMU imu;
+	
 	unsigned int index;
 	
 } STORE_NODE;
@@ -22,23 +24,23 @@ public :
 
 	CVisionStore();
 	
-	~CVisionStore();
+	virtual ~CVisionStore();
 	
-	int Init(const string& path);
+	virtual int Init(const string& path);
 	
-	int push(unsigned char* lptr, unsigned int lLen, unsigned char* rptr, unsigned int rLen);
+	virtual int push(unsigned char* lptr, unsigned int lLen, unsigned char* rptr, unsigned int rLen, IMU* pImu = NULL);
 	
-	int pop();
+	virtual int pop();
 
+	virtual void OutFile(STORE_NODE* p);
+	
 private :
-
-	void OutFile(STORE_NODE* p);
 
 	bool OutImg(const char* pData, unsigned int size, const char* szPath);
 	
 private :
 
-	STORE_NODE* m_StoreQueue[QUEUE_SIZE];
+	STORE_NODE* m_StoreQueue[STORE_QUUE_SIZE];
 
 	unsigned int m_cnt;
 	unsigned int m_fetch;

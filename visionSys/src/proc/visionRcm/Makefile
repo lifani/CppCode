@@ -4,7 +4,7 @@ OBJECTS = visionRcm.o
 
 CFLAGS = -g -Wall -I../../../include -I../../../third
 
-LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -lplatform -lmt -lxml -lproperty -lpthread -lrt
+LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -L../../../third/can/lib -lplatform -lmt -lxml -lcan -llog  -lsocketcan -lproperty -lpthread -lrt
 
 CXX = arm-linux-g++
 

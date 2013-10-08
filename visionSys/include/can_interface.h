@@ -9,17 +9,19 @@ public :
 	{
 	}
 	
-	virtual int Read(char* ptr, unsigned short* len) = 0;
+	virtual int Read(char* ptr, unsigned short len, int type = 0) = 0;
 	
-	virtual int Write(const char* ptr, unsigned int len) = 0;
+	virtual int Write(const char* ptr, unsigned int len, unsigned short can_id = 0, unsigned short cmd_code = 0) = 0;
 
-	virtual bool Register() = 0;
+	virtual bool Init() = 0;
 	
-	virtual bool ResetFilter(unsigned short can_id, unsigned short cmd_code) = 0;
+	virtual bool SetFilter(unsigned short can_id, unsigned short cmd_code) = 0;
 	
 	virtual void SetKey(unsigned char key) = 0;
+	
+	virtual void SetProtocal( bool bIsOldProtocal ) = 0;
 };
 
-extern "C" can_interface* CreateCanInterface(const char* can_name, unsigned short can_id, unsigned short cmd_code, unsigned int size);
+extern "C" can_interface* CreateCanInterface(const char* can_name);
 
 #endif

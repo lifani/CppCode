@@ -4,7 +4,7 @@ OBJECTS = base_vision.o monitor.o visionStore.o platform.o
 
 CFLAGS = -g -Wall -fPIC -I../../include -I../../third
 
-LDFLAGS = ar -r 
+LDFLAGS = ar -r
 
 CXX = arm-linux-g++
 

@@ -1,5 +1,6 @@
 <root>
-	<proc name="rcm">
-		<module name="" />
+	<proc name="visionRcm">
+		<proc name="visionVelocity" />
+		<proc name="visionBm" />	
 	</proc>
 </root>

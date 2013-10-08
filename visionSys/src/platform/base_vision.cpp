@@ -10,7 +10,7 @@ static void sig_chld(int signo)
 		int status;
 		pid_t pid = wait(&status);
 		
-		cout << "proc " << pid << " exit" << endl;
+		LOGW("proc : %d exit. %s : %d\n", pid, __FILE__, __LINE__);
 	}
 }
 
@@ -37,8 +37,6 @@ void* StartPthread(void* arg)
 	
 	(pTFUNC->pBaseVision->*(pTFUNC->pFunc))();
 	
-	pTFUNC->pBaseVision->Deactive();
-	
 	return NULL;
 }
 
@@ -64,7 +62,7 @@ static int SetTimer(timer_t timerid)
 	new_value.it_interval.tv_nsec = 0;
 	
 	new_value.it_value.tv_sec = 5;  
-    new_value.it_value.tv_nsec = 0; 
+	new_value.it_value.tv_nsec = 0; 
 	
 	return timer_settime(timerid, 0, &new_value, NULL);
 }
@@ -109,11 +107,11 @@ int CBaseVision::Active()
 	{
 		strAbsName = m_strCwd + string("/") + m_pname;
 		
-
 		key_t shmkey;
 		// 注册通信模块
 		if ((shmkey = CMt::mt_init(SHM_MODE, strAbsName.c_str(), m_pid, GetShmSize(m_pname), sizeof(FEEDBACK_DATA))) == -1)
 		{
+			LOGE("%s register share memory connection module error. %s : %d\n", m_pname.c_str(), __FILE__, __LINE__);
 			return -1;
 		}
 		
@@ -123,14 +121,15 @@ int CBaseVision::Active()
 		// 注册消息发送模块  (ppname, ppid) : key
 		if ((m_skey = CMt::mt_init(SEM_MODE, strAbsName.c_str(), m_ppid)) == -1)
 		{
+			LOGE("%s register msg module error. %s : %d\n", m_pname.c_str(), __FILE__, __LINE__);
 			return -1;
 		}
 		
 		// 注册消息发送定时器 #key
-		int nRet = CreateTimer(SendHeartBeat, &m_sTimerid, this);
+		CreateTimer(SendHeartBeat, &m_sTimerid, this);
 		
 		// 启动定时器
-		nRet = SetTimer(m_sTimerid);
+		SetTimer(m_sTimerid);
 	}
 	
 	// 存在子进程？
@@ -145,6 +144,7 @@ int CBaseVision::Active()
 			key_t key = CMt::mt_init(SHM_MODE, strAbsName.c_str(), itr->pid, GetShmSize(itr->pname), sizeof(FEEDBACK_DATA));
 			if (-1 == key)
 			{
+				LOGE("%s register share memory connection module error. %s : %d\n", m_pname.c_str(), __FILE__, __LINE__);
 				return -1;
 			}
 			
@@ -155,6 +155,7 @@ int CBaseVision::Active()
 		// 注册消息接收模块  (pname, pid)
 		if ((m_rkey = CMt::mt_init(SEM_MODE, strAbsName.c_str(), m_pid)) == -1)
 		{
+			LOGE("%s register msg module error. %s : %d\n", m_pname.c_str(), __FILE__, __LINE__);
 			return -1;
 		}
 		
@@ -183,6 +184,7 @@ int CBaseVision::Action()
 
 		if (pthread_create(&tPfunc->tid, NULL, StartPthread, (void*)tPfunc) != 0)
 		{
+			LOGE("create thread error. %s : %d\n", __FILE__, __LINE__);
 			return -1;
 		}
 		
@@ -208,17 +210,17 @@ int CBaseVision::Deactive()
 		// 删除消息接收定时器
 		DeleteTimer(m_rTimerid);
 		
+		char szCmd[256] = {0};
 		vector<PROC_INFO>::iterator itrProc = m_vProcInfo.begin();
 		for (; itrProc != m_vProcInfo.end(); ++itrProc)
 		{	
-			char szCmd[256] = {0};
 			sprintf(szCmd, "kill -2 %d", itrProc->pid);
+			
 			FILE* fp = popen(szCmd, "r");
-			if (NULL == fp)
+			if (NULL != fp)
 			{
 				pclose(fp);
 			}
-			//kill(itrProc->pid, SIGINT);
 		}
 	}
 	
@@ -236,6 +238,8 @@ int CBaseVision::Deactive()
 		delete *it;
 		*it = NULL;
 	}
+	
+	LOGW("%s deactived. %s : %d\n", m_pname.c_str(), __FILE__, __LINE__);
 
 	NotifyExit(PROC_EXIT);
 	
@@ -265,10 +269,9 @@ void CBaseVision::Run3()
 void CBaseVision::SndHeartBeat()
 {
 	HeartBeat beat;
-	beat.type = m_ppid;
-	beat.pid = m_pid;
+	beat.type = m_pid;
 	
-	unsigned int size = sizeof(HeartBeat);
+	unsigned int size = 0;
 	if (CMt::mt_send(m_skey, (char*)&beat, &size) == -1)
 	{
 		m_times--;
@@ -280,6 +283,7 @@ void CBaseVision::SndHeartBeat()
 	
 	if (0 == m_times)
 	{
+		LOGE("lost connection to server, deactive by itself. %s : %d\n", __FILE__, __LINE__);
 		Deactive();
 	}
 }
@@ -287,12 +291,12 @@ void CBaseVision::SndHeartBeat()
 void CBaseVision::RcvHeartBeat()
 {
 	vector<PROC_INFO>::iterator itr = m_vProcInfo.begin();
-	for(; itr != m_vProcInfo.end(); ++itr)
+	for(; itr != m_vProcInfo.end();)
 	{
 		HeartBeat beat;
-		beat.type = m_pid;
+		beat.type = itr->pid;
 
-		unsigned int size = sizeof(HeartBeat);
+		unsigned int size = 0;
 		if (CMt::mt_recv(m_rkey, (char*)&beat, &size) == -1)
 		{
 			itr->times--;
@@ -304,7 +308,12 @@ void CBaseVision::RcvHeartBeat()
 		
 		if (itr->times == 0)
 		{
-			cout << "proc " << itr->pname << " lost connection" << endl;
+			LOGE("lost connection to %s. %s : %d\n", itr->pname.c_str(), __FILE__, __LINE__);
+			itr = m_vProcInfo.erase(itr);
+		}
+		else
+		{
+			++itr;
 		}
 	}
 }
@@ -330,6 +339,10 @@ unsigned int CBaseVision::GetShmSize(string pname)
 	else if (pname.compare("visionBm") == 0)
 	{
 		size = sizeof(RECTIFIED_IMG);
+	}
+	else if (pname.compare("visionFightCtl") == 0)
+	{
+		size = sizeof(FIGHTCTL_DATA);
 	}
 	
 	return size;

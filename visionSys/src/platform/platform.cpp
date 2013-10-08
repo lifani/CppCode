@@ -33,7 +33,7 @@ static void sig_handle(int signo)
 {
 	if (SIGINT == signo)
 	{
-		cout << "recv sigint." << endl;
+		LOGE("recv sigint. %s : %d\n", __FILE__, __LINE__);
 		if (NULL != pCommonI)
 		{
 			pCommonI->Deactive();
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 	
 	if (argc > 2)
 	{
-		cout << "a.out [<pname>]" << endl;
+		LOGE("a.out [<pname>]. %s : %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 	
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 	CXml xml;
 	if (!xml.ReadXml(CONFIG_XML, vXmlNode))
 	{
-		cout << "load config error." << endl;
+		LOGE("load xml config error. %s : %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 	
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 		pCommonI = CreateInstance(ppname.c_str(), pname.c_str());
 		if (NULL == pCommonI)
 		{
-			cout << "create instance error." << endl;
+			LOGE("create instance error. %s : %d\n", __FILE__, __LINE__);
 			break;
 		}
 		
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 					pid_t pid;
 					if ((pid = fork()) == -1)
 					{
-						cout << "fork proc error." << endl;
+						LOGE("fork proc error. %s : %d\n", __FILE__, __LINE__);
 						
 						bFlg = true;
 						break;
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 						// 替换进程内容
 						if (-1 == execl(name.c_str(), name.c_str(), pname.c_str(), (char*)0))
 						{
-							cout << "exec error." << endl;
+							LOGE("%s exec error. %s : %d\n", name.c_str(), __FILE__, __LINE__);
 							
 							bFlg = true;
 							break;
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 		// 激活进程
 		if (-1 == pCommonI->Active())
 		{
-			cout << pname << " active error." << endl;
+			LOGE("%s active error. %s : %d\n", pname.c_str(), __FILE__, __LINE__);
 			break;
 		}
 		
@@ -141,10 +141,11 @@ int main(int argc, char* argv[])
 		// 执行
 		if (-1 == pCommonI->Action())
 		{
-			cout << pname << " action error." << endl;
+			LOGE("%s action error. %s : %d\n", pname.c_str(), __FILE__, __LINE__);
+			break;
 		}
 
-		// 去激活
+		// 主线程进入休眠状态
 		Monitor();
 		
 	} while (0);

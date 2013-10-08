@@ -20,8 +20,8 @@ TINYXML_USE_STL := NO
 #****************************************************************************
 
 CC     := gcc
-CXX    := g++
-LD     := g++
+CXX    := arm-linux-g++
+LD     := arm-linux-g++
 AR     := ar rc
 RANLIB := ranlib
 
