@@ -1,5 +1,5 @@
 TARGET = ../../../output/libcan.so
-OBJECTS = can_data.o MF_CRC8.o crc16.o
+OBJECTS = can_data.o MF_CRC8.o crc16.o packet.o
 CFLAGS = -Wall -fPIC -I../../../include -I../../../third/can/include -I../../../third/canutils-4.0.6/include
 LDFLAGS = -shared -Wl,-rpath,./ -L../../../third/can/lib -lsocketcan
 
@@ -10,6 +10,9 @@ $(TARGET) : $(OBJECTS)
 	
 can_data.o : can_data.cpp can_data.h
 	$(CXX) $(CFLAGS) -c can_data.cpp can_data.h
+	
+packet.o : packet.cpp
+	$(CXX) $(CFLAGS) -c packet.cpp
 	
 crc16.o : crc16.cpp crc16.h
 	$(CXX) $(CFLAGS) -c crc16.cpp crc16.h

@@ -4,7 +4,7 @@ OBJECTS = start.o
 
 CFLAGS = -g -Wall -I../../../include
 
-LDFLAGS = -Wl,-rpath,./
+LDFLAGS = -Wl,-rpath,./ -L../../../output -llog
 
 CXX = arm-linux-g++
 

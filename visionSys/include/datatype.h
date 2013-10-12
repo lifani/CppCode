@@ -12,11 +12,15 @@
 
 #define CAN_ID_NORMAL		0x108
 #define CAN_ID_ATTI			0x090
+#define CAN_ID_MC			0x388
 
 #define CMD_CODE_NORMAL		0x1000
 #define CMD_CODE_ATTI		0x1002
+#define CMD_CODE_MC			0x1009
 
 #define MMAP_SIZE 0x00100000
+
+#define SOFT_VERSION		"vl300-v1.0-T002"
 
 enum
 {
@@ -70,6 +74,11 @@ typedef struct _CAN_VELOCITY_DATA
 	
 	unsigned short vx;
 	unsigned short vy;
+	unsigned short vz;
+	
+	float dx;
+	float dy;
+	float dz;
 	
 	float dxy;
 	float dyz;
@@ -80,10 +89,87 @@ typedef struct _CAN_VELOCITY_DATA
 
 typedef struct _CAN_BM_DATA
 {
-	unsigned char data[144];	
+	unsigned char data[256];
+	
+	unsigned int size;
 } CAN_BM_DATA;
 
+typedef struct tManageControlData
+{
+	int				head;
+	unsigned int  	g_real_clock;
+	short 			g_real_input_channel_COMMAND_AILERON;
+	short 			g_real_input_channel_COMMAND_ELEVATOR;
+	short 			g_real_input_channel_COMMAND_THROTTLE;
+	short 			g_real_input_channel_COMMAND_RUDDER;
+	short 			g_real_input_channel_COMMAND_MODE;
+	short 			g_real_input_channel_COMMAND_IOC;
+	short 			g_real_input_channel_COMMAND_GO_HOME;
+	short 			g_real_input_channel_COMMAND_D4;
+	short			g_real_input_control_core_pitch;
+	short			g_real_input_control_core_roll;
+	short			g_real_input_control_core_alti;
+	short			g_real_input_control_core_tail;
+	short 			g_real_output_control_core_pitch;
+	short 			g_real_output_control_core_roll;
+	short 			g_real_output_control_core_alti;
+	short 			g_real_output_control_core_tail;
+	short 			g_real_output_control_w_pitch;
+	short 			g_real_output_control_w_roll;
+	short 			g_real_output_control_w_alti;
+	short 			g_real_output_control_w_tail;
+	int 			g_real_output_channel_0;
+	int 			g_real_output_channel_1;
+	int 			g_real_output_channel_2;
+	int 			g_real_output_channel_3;
+	int 			g_real_output_channel_4;
+	int 			g_real_output_channel_5;
+	int 			g_real_output_channel_6;
+	int 			g_real_output_channel_7;
+	int 			g_raw_output_channel_0;
+	int 			g_raw_output_channel_1;
+	int 			g_raw_output_channel_2;
+	int 			g_raw_output_channel_3;
+	int 			g_raw_output_channel_4;
+	int 			g_raw_output_channel_5;
+	int 			g_raw_output_channel_6;
+	int 			g_raw_output_channel_7;
+	unsigned char 	g_real_status_cotrol_command_mode;
+	unsigned char 	g_real_status_control_real_mode;
+	unsigned char	g_real_status_ioc_control_command_mode;
+	unsigned char 	g_ground_station_status_status_case;
+	int				dyn_tail_ctrl_value;
+	unsigned char	g_real_status_rc_state;
+	float			g_debug_inr0;
+	float			g_debug_inr1;
+	float			g_debug_inr2;
+	float			g_debug_inr3;
+	float			g_debug_inr4;
+	float			g_debug_inr5;
+	float			g_debug_inr6;
+	float			g_debug_inr7;
+	float			g_debug_inr8;
+	float			g_debug_inr9;
+	unsigned char	OSCPUUsage;
+	unsigned char   takeoff_assistant_working;
+	unsigned char   g_real_status_motor_status;
+	unsigned int  	imu_package_lost_count;
+	unsigned char	ctrl_data_hold_horizontal;
+	short  			g_real_status_main_batery_voltage;
+} ManageControlData;
+
 #pragma pack()
+
+typedef struct tMC
+{
+	short pitch;
+	short roll;
+	short alti;
+	
+	tMC() : pitch(0), roll(0), alti(0)
+	{
+	}
+} MC;
 
 typedef struct tIMU
 {
@@ -102,12 +188,19 @@ typedef struct tIMU
 	float q2;
 	float q3;
 	
+	float vgx;
+	float vgy;
+	float vgz;
+	
+	MC mc;
+	
 	tIMU()
 	{
 		acc_x = 0; acc_y = 0; acc_z = 0;
 		gyro_x = 0; gyro_y = 0; gyro_z = 0;
 		press = 0;
 		q0 = 0; q1 = 0; q2 = 0; q3 = 0;
+		vgx = 0; vgy = 0; vgz = 0;
 	}
 } IMU;
 
@@ -203,6 +296,8 @@ typedef struct _RECTIFIED_IMG
 	unsigned char lImg[IMG_SIZE];
 	unsigned char rImg[IMG_SIZE];
 	
+	IMU imu;
+	
 	unsigned int index;
 } RECTIFIED_IMG;
 
@@ -218,6 +313,8 @@ typedef struct _FEEDBACK_DATA
 {
 	unsigned int flg;
 	unsigned int cnt;
+	unsigned int size;
+	
 	unsigned char data[IMG_SIZE];
 } FEEDBACK_DATA;
 
@@ -233,5 +330,11 @@ typedef struct _PTHREAD_PFUNC
 	PFUNC	pFunc;
 	pthread_t tid;
 } PTHREAD_PFUNC;
+
+typedef struct _CAN_FILTER
+{
+	unsigned short can_id;
+	unsigned short cmd_code;
+} CAN_FILTER;
 
 #endif

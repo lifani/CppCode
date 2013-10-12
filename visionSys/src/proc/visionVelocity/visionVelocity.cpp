@@ -43,11 +43,12 @@ int CVelocityStore::Init(const string& path)
 void CVelocityStore::OutFile(STORE_NODE* p)
 {
 	char szData[512] = {0};
-	snprintf(szData, sizeof(szData), "%f	%f	%f	%f	%f	%f	%f	%f	%f	%f	%f\n",
+	snprintf(szData, sizeof(szData), "%f	%f	%f	%f	%f	%f	%f	%f	%f	%f	%f	%f	%f	%f\n",
 		p->imu.acc_x, p->imu.acc_y, p->imu.acc_z,
 		p->imu.gyro_x, p->imu.gyro_y, p->imu.gyro_z,
 		p->imu.press,
-		p->imu.q0, p->imu.q1, p->imu.q2, p->imu.q3);
+		p->imu.q0, p->imu.q1, p->imu.q2, p->imu.q3,
+		p->imu.vgx, p->imu.vgy, p->imu.vgz);
 	
 	write(m_fd, szData, strlen(szData));
 	
@@ -130,10 +131,11 @@ void CVisionVelocity::Run()
 		CAN_VELOCITY_DATA* pV = (CAN_VELOCITY_DATA*)tFeedback.data;
 		
 		tFeedback.cnt = i;
+		tFeedback.size = sizeof(CAN_VELOCITY_DATA);
 		
 		pV->cnt = i;
 		// Êý¾Ý·´À¡
-		size = sizeof(CAN_VELOCITY_DATA) + 2 * sizeof(int);
+		size = sizeof(CAN_VELOCITY_DATA) + 3 * sizeof(int);
 		memcpy((char*)&tVelocity, (char*)&tFeedback, size);
 		
 		++i;

@@ -26,12 +26,15 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 : CBaseVision(ppname, pname)
 , m_bRunning(true)
 , m_isImuReady(false)
+, m_isMcReady(false)
 , st_fd(0)
 , m_fd(0)
 , m_ptr(NULL)
 , m_can0(NULL)
 , m_FetchPos(-1)
 , m_StorePos(0)
+, m_mcFetchPos(-1)
+, m_mcStorePos(0)
 , m_can_v_fetch(-1)
 , m_can_v_store(0)
 , m_can_b_fetch(-1)
@@ -65,19 +68,39 @@ int CVisionRcm::Active()
 		return -1;
 	}
 	
+	// 清空过滤条件
+	m_vFilter.clear();
+	
+	// 设置过滤条件
+	Filter_param filter;
+	filter.m_usCanId = CAN_ID_NORMAL;
+	filter.m_usCmdCode = CMD_CODE_NORMAL;
+	
+	m_vFilter.push_back(filter);
+	
 	// 设置normal
-	if (!m_can0->SetFilter(CAN_ID_NORMAL, CMD_CODE_NORMAL))
+	if (!m_can0->SetFilter(m_vFilter))
 	{
 		LOGE("can0 set filter error. %s : %d\n", __FILE__, __LINE__);
 		return -1;
 	}
 	
-	NormalMode tNormalMode;
+	NormalMode* pNormalMode;
 
-	m_can0->Read((char*)&tNormalMode, sizeof(NormalMode));
-	m_can0->SetKey(tNormalMode.key);
+	//m_can0->Read((char*)&tNormalMode, sizeof(NormalMode));
+	//m_can0->SetKey(tNormalMode.key);
 	
-	LOGW("IMU key = %02x. %s : %d\n", tNormalMode.key, __FILE__, __LINE__);
+	Packet* pPacket = m_can0->Read();
+	if (NULL == pPacket)
+	{
+		LOGE("get imu key error. %s : %d\n", __FILE__, __LINE__);
+		return -1;
+	}
+	
+	pNormalMode = (NormalMode*)pPacket->GetBuffer();
+	m_can0->SetKey(pNormalMode->key);
+	
+	LOGW("IMU key = %02x. %s : %d\n", pNormalMode->key, __FILE__, __LINE__);
 	
 	// 注册线程
 	RegisterPthread(&CBaseVision::Run1);
@@ -203,7 +226,8 @@ void CVisionRcm::Run()
 				if (0 == last_cnt_b || last_cnt_b != pFeedBack->cnt)
 				{
 					// 入发送队列
-					memcpy((char*)&can_b[m_can_b_store++], pFeedBack->data, sizeof(CAN_BM_DATA));
+					can_b[m_can_b_store].size = pFeedBack->size;
+					memcpy((char*)&can_b[m_can_b_store++], pFeedBack->data, pFeedBack->size);
 				
 					if (QUEUE_SIZE == (unsigned int)m_can_b_store)
 					{
@@ -228,41 +252,46 @@ void CVisionRcm::Run()
 
 void CVisionRcm::Run1()
 {	
+	// 清空过滤条件
+	m_vFilter.clear();
+	
+	// 设置过滤条件
+	Filter_param filter;
+	filter.m_usCanId = CAN_ID_ATTI;
+	filter.m_usCmdCode = CMD_CODE_ATTI;
+	
+	m_vFilter.push_back(filter);
+	
+	filter.m_usCanId = CAN_ID_MC;
+	filter.m_usCmdCode = CMD_CODE_MC;
+	
+	m_vFilter.push_back(filter);
+	
 	// 设置atti
-	if (!m_can0->SetFilter(CAN_ID_ATTI, CMD_CODE_ATTI))
+	if (!m_can0->SetFilter(m_vFilter))
 	{
 		return;
 	}
-	
-	imu_body imu;
+
 	while(m_bRunning)
 	{
 		// 接收IMU数据
-		m_can0->Read((char*)&imu, sizeof(imu_body), 1);
+		Packet* pPacket = m_can0->Read();
 		
-		// 加入队列
-		pthread_mutex_lock(&imu_lock);
-		
-		imu_body* pImu = &m_imu_body[m_StorePos];
-		memcpy((char*)pImu, (char*)&imu, sizeof(imu_body));
-		
-		m_StorePos++;
-		if (QUEUE_SIZE == (unsigned int)m_StorePos)
+		unsigned short id = pPacket->GetCanId();
+		switch(id)
 		{
-			m_StorePos = 0;
+		case CAN_ID_ATTI:
+			AddImu(pPacket);
+			break;
+		case CAN_ID_MC:
+			AddMc(pPacket);
+			break;
+		default:
+			break;
 		}
 		
-		m_FetchPos++;
-		if (QUEUE_SIZE == (unsigned int)m_FetchPos)
-		{
-			m_FetchPos = 0;
-		}
-		
-		m_isImuReady = true;
-		
-		pthread_mutex_unlock(&imu_lock);
-		
-		usleep(5000);
+		usleep(3000);
 	}
 }
 
@@ -314,7 +343,7 @@ void CVisionRcm::Run2()
 		if (NULL != pb)
 		{
 			m_can0->SetProtocal(false);
-			m_can0->Write((char*)pb, sizeof(CAN_BM_DATA), 0x70a, 0x1005);
+			m_can0->Write((char*)pb, pb->size, 0x70a, 0x1005);
 		}
 	}
 }
@@ -578,6 +607,9 @@ int CVisionRcm::ReadRectifiedImg(RECTIFIED_IMG& tRectified)
 	memcpy(tRectified.lImg, (char*)(m_ptr + MAX_CLOUD_SIZE * 2), IMG_SIZE);
 	memcpy(tRectified.rImg, (char*)(m_ptr + MAX_CLOUD_SIZE * 2 + IMG_SIZE), IMG_SIZE);
 	
+	// 获取IMU数据
+	GetIMU(tRectified.imu);
+	
 	tRectified.index = m_index;
 	
 	return 0;
@@ -588,31 +620,99 @@ void CVisionRcm::GetIMU(IMU& imu)
 {	
 	pthread_mutex_lock(&imu_lock);
 	
-	if (!m_isImuReady)
+	if (m_isImuReady)
 	{
-		pthread_mutex_unlock(&imu_lock);
-		return;
+		imu_body* p = &m_imu_body[m_FetchPos];
+		if (NULL != p)
+		{
+			imu.acc_x = p->acc_x;
+			imu.acc_y = p->acc_y;
+			imu.acc_z = p->acc_z;
+					
+			imu.gyro_x = p->gyro_x;
+			imu.gyro_y = p->gyro_y;
+			imu.gyro_z = p->gyro_z;
+			
+			imu.press = p->press;
+			
+			imu.q0 = p->q0;
+			imu.q1 = p->q1;
+			imu.q2 = p->q2;
+			imu.q3 = p->q3;
+			
+			imu.vgx = p->vgx;
+			imu.vgy = p->vgy;
+			imu.vgz = p->vgz;
+		}
 	}
 	
-	imu_body* p = &m_imu_body[m_FetchPos];
-	if (NULL != p)
+	if (m_isMcReady)
 	{
-		imu.acc_x = p->acc_x;
-		imu.acc_y = p->acc_y;
-		imu.acc_z = p->acc_z;
-				
-		imu.gyro_x = p->gyro_x;
-		imu.gyro_y = p->gyro_y;
-		imu.gyro_z = p->gyro_z;
-		
-		imu.press = p->press;
-		
-		imu.q0 = p->q0;
-		imu.q1 = p->q1;
-		imu.q2 = p->q2;
-		imu.q3 = p->q3;
+		MC* pMc = &m_mc[m_mcFetchPos];
+		if (NULL != pMc)
+		{
+			imu.mc.pitch = pMc->pitch;
+			imu.mc.roll = pMc->roll;
+			imu.mc.alti = pMc->alti;
+		}
 	}
 	
 	pthread_mutex_unlock(&imu_lock);
 }
+
+void CVisionRcm::AddImu(Packet* p)
+{
+	// 加入队列
+	pthread_mutex_lock(&imu_lock);
+	
+	imu_body* pImu = &m_imu_body[m_StorePos];
+	memcpy((char*)pImu, (char*)p->GetBuffer(), sizeof(imu_body));
+	
+	m_StorePos++;
+	if (QUEUE_SIZE == (unsigned int)m_StorePos)
+	{
+		m_StorePos = 0;
+	}
+	
+	m_FetchPos++;
+	if (QUEUE_SIZE == (unsigned int)m_FetchPos)
+	{
+		m_FetchPos = 0;
+	}
+	
+	m_isImuReady = true;
+	
+	pthread_mutex_unlock(&imu_lock);
+}
+
+void CVisionRcm::AddMc(Packet* p)
+{
+	// 加入队列
+	pthread_mutex_lock(&imu_lock);
+	
+	ManageControlData* pMData = (ManageControlData*)p->GetBuffer();
+	
+	MC* pMc = &m_mc[m_mcStorePos];
+	
+	pMc->pitch = pMData->g_real_input_control_core_pitch;
+	pMc->roll = pMData->g_real_input_control_core_roll;
+	pMc->alti = pMData->g_real_input_control_core_alti;
+	
+	m_mcStorePos++;
+	if (QUEUE_SIZE == (unsigned int)m_mcStorePos)
+	{
+		m_mcStorePos = 0;
+	}
+	
+	m_mcFetchPos++;
+	if (QUEUE_SIZE == (unsigned int)m_mcFetchPos)
+	{
+		m_mcFetchPos = 0;
+	}
+	
+	m_isMcReady = true;
+	
+	pthread_mutex_unlock(&imu_lock);
+}
+
 

@@ -3,6 +3,8 @@
 #include <bm/main_bm.h>
 #include "visionBm.h"
 
+extern const int sizeOutBuf; 
+
 CCommonInterface* CreateInstance(const char* ppname, const char* pname)
 {
 	if (NULL == ppname || NULL == pname)
@@ -78,8 +80,9 @@ void CVisionBm::Run()
 		m_VisionStore.push(tRectified.lImg, IMG_SIZE, tRectified.rImg, IMG_SIZE);
 
 		tFeedback.cnt = i++;
+		tFeedback.size = sizeOutBuf;
 		
-		size = sizeof(CAN_BM_DATA) + 2 * sizeof(int);
+		size = sizeOutBuf + 3 * sizeof(int);
 		// Êý¾Ý·´À¡
 		memcpy((char*)&tRectified, (char*)&tFeedback, size);
 	}

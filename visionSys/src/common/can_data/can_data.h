@@ -4,6 +4,9 @@
 #include <typedef.h>
 #include <can_interface.h>
 #include <datatype.h>
+#include "packet.h"
+
+#define MAXNUMOFCANID 20
 
 typedef struct _can_head
 {
@@ -21,27 +24,17 @@ public :
 	
 	virtual ~can_data();
 	
-	virtual int Read(char* ptr, unsigned short len, int type = 0);
+	virtual Packet* Read();
 	
 	virtual int Write(const char* ptr, unsigned int len,unsigned short can_id = 0, unsigned short cmd_code = 0);
 	
 	virtual bool Init();
 	
-	virtual bool SetFilter(unsigned short can_id, unsigned short cmd_code);
+	virtual bool SetFilter( vector<Filter_param>& rFilterVector );
 	
 	virtual void SetKey(unsigned char key);
 	
 	virtual void SetProtocal( bool bIsOldProtocal );
-
-private :
-	
-	bool IsHead(struct can_frame& frame);
-
-	bool IsTail(struct can_frame& frame, int pos);
-	
-	bool IsNeed(struct can_frame& frame);
-	
-	bool Check4Q(char* pData);
 	
 private :
 
@@ -59,6 +52,8 @@ private :
 	char m_SndData[1024];
 	
 	bool m_bIsOldProtocal;
+
+	Packet *m_packet[MAXNUMOFCANID];
 };
 
 #endif

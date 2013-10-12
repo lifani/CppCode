@@ -61,10 +61,19 @@ can_data::can_data(const char* can_name)
 , m_bIsOldProtocal(false)
 {
 	m_SndData[0] = 0x55;
+	for ( int i = 0; i < MAXNUMOFCANID; ++i )
+	{
+		m_packet[i] = NULL;
+	}
 }
 
 can_data::~can_data()
 {
+	for ( int i = 0; i < MAXNUMOFCANID; ++i )
+	{
+		delete m_packet[i];
+		m_packet[i] = NULL;
+	}
 }
 
 bool can_data::Init()
@@ -115,61 +124,54 @@ bool can_data::Init()
 	return true;
 }
 
-int can_data::Read(char* ptr, unsigned short size, int type)
-{	
+Packet* can_data::Read()
+{
+	struct pollfd poll_fd;
+	poll_fd.fd = m_can_sck;
+	poll_fd.events = POLLIN;
+	
 	struct can_frame frame;
+	Packet *pPacket = NULL;
 	
-	bool IsOk 	= false;
-	bool bBegin = false;
-	
-	unsigned int pos = 0;
-	
-	unsigned short len = 0;
-	while (!IsOk)
+	bool bIsOk = false;
+	while( !bIsOk )
 	{
-		while (!bBegin)
+		while( true )
 		{
-			if (read(m_can_sck, &frame, sizeof(struct can_frame)) > 0)
+			if (poll(&poll_fd, 1, -1) > 0)
 			{
-				unsigned short code = *(unsigned short*)(frame.data + 4);
-				
-				if (IsHead(frame) && code == m_cmd_code)
+				if ( read(m_can_sck, &frame, sizeof(struct can_frame)) < 0 )
 				{
-					pos = 0;
-					len = *(unsigned short*)((char*)frame.data + 6);
-					
-					bBegin = true;
+					usleep(2000);
+				}
+				else
+				{
+					break;
 				}
 			}
-		}
-		
-		while (bBegin && !IsOk)
-		{
-			if (read(m_can_sck, &frame, sizeof(struct can_frame)) > 0)
+			else
 			{
-				int i = 0;
-				for (; i < frame.can_dlc && pos < len; ++i, ++pos)
+				usleep(2000);
+			}
+		}
+
+		unsigned short usCanId = frame.can_id;
+		for ( int nIndex = 0; nIndex < MAXNUMOFCANID; ++nIndex )
+		{
+			pPacket = m_packet[nIndex];
+			
+			if (NULL != pPacket && pPacket->IsEqualFilter(usCanId))
+			{
+				if ( pPacket->Push( frame ) )
 				{
-					*(ptr + pos) = frame.data[i] ^ m_key;
-				}
-				
-				if (pos == len && i < frame.can_dlc)
-				{
-					if (IsTail(frame, i) && (1 != type || Check4Q(ptr)))
-					{
-						IsOk = true;
-					}
-					else
-					{
-						pos = 0;
-						bBegin = false;
-					}
+					bIsOk = true;
+					break;
 				}
 			}
 		}
 	}
 	
-	return pos;
+	return pPacket;
 }
 
 void can_data::SetProtocal( bool bIsOldProtocal )
@@ -210,7 +212,7 @@ int can_data::Write(const char* ptr, unsigned int len, unsigned short can_id, un
 		// 数据
 		memcpy(m_SndData + snd_size, ptr, len);
 		snd_size += len;
-		snd_size += 2;//末尾有2个字节的checksum
+		snd_size += 2; //末尾有2个字节的checksum
 
 		Append_CRC8_Check_Sum( (unsigned char*)m_SndData, 4 );
 		Append_CRC16_Check_Sum( (unsigned char*)m_SndData, (unsigned int)uLen );
@@ -248,17 +250,17 @@ int can_data::Write(const char* ptr, unsigned int len, unsigned short can_id, un
 		
 		frame.can_dlc = dlc;
 
-		while(write(m_can_sck, &frame, sizeof(struct can_frame)) < 0)
+		while ( true )
 		{
-			if (ENOBUFS == errno)
+			if (poll(&poll_fd, 1, -1) > 0)
 			{
-				if (poll(&poll_fd, 1, -1) > 0)
+				if ( write(m_can_sck, &frame, sizeof(struct can_frame)) < 0 )
 				{
-					continue;
+					usleep(2000);
 				}
 				else
 				{
-					usleep(2000);
+					break;
 				}
 			}
 			else
@@ -271,19 +273,46 @@ int can_data::Write(const char* ptr, unsigned int len, unsigned short can_id, un
 	return len;
 }
 
-bool can_data::SetFilter(unsigned short can_id, unsigned short cmd_code)
+bool can_data::SetFilter( vector<Filter_param>& rFilterVector )
 {
-	struct can_filter rfilter[1];
-	rfilter[0].can_id = can_id;
-	rfilter[0].can_mask = CAN_SFF_MASK;
-	
-	if (0 != setsockopt(m_can_sck, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)))
+	// reset
+	for ( int nCurIndex = 0; nCurIndex < MAXNUMOFCANID; ++nCurIndex )
 	{
-		cout << "set can filter fail." << endl;
-		return false;
+		if ( NULL == m_packet[nCurIndex] )
+		{
+			break;
+		}
+		
+		delete m_packet[nCurIndex];
+		m_packet[nCurIndex] = NULL;
+	}
+
+	struct can_filter rfilter[MAXNUMOFCANID];
+	for ( unsigned int nIndex = 0; nIndex < rFilterVector.size(); ++nIndex )
+	{
+		unsigned short usCanId = rFilterVector[nIndex].m_usCanId;
+		unsigned short usCmdCode = rFilterVector[nIndex].m_usCmdCode;
+		
+		rfilter[nIndex].can_id = usCanId;
+		rfilter[nIndex].can_mask = CAN_SFF_MASK;
+
+		Packet* p = new Packet( usCanId, usCmdCode );
+		if (NULL != p)
+		{
+			if (usCanId != CAN_ID_MC)
+			{
+				p->SetKey(m_key);
+			}
+			
+			m_packet[nIndex] = p;
+		}
+		
 	}
 	
-	m_cmd_code = cmd_code;
+	if (0 != setsockopt(m_can_sck, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(can_filter)*rFilterVector.size()))
+	{
+		return false;
+	}
 	
 	return true;
 }
@@ -291,72 +320,5 @@ bool can_data::SetFilter(unsigned short can_id, unsigned short cmd_code)
 void can_data::SetKey(unsigned char key)
 {
 	m_key = key;
+	//Packet::SetKey( key );
 }
-
-inline bool can_data::IsHead(struct can_frame& frame)
-{
-	bool bRet = false;
-	
-	if (frame.can_dlc == 8)
-	{
-		char* pData = (char*)frame.data;
-		bRet = pData[0] == 0x55 && pData[1] == 0xaa && pData[2] == 0x55 && pData[3] == 0xaa;
-	}
-	
-	return bRet;
-}
-
-inline bool can_data::IsTail(struct can_frame& frame, int pos)
-{
-	bool bRet = false;
-	
-	if (frame.can_dlc - pos >= 4)
-	{
-		char* pData = (char*)frame.data + (frame.can_dlc - 4);
-		bRet = pData[0] == 0x66 && pData[1] == 0xcc && pData[2] == 0x66 && pData[3] == 0xcc;
-	}
-	
-	return bRet;
-}
-
-inline bool can_data::IsNeed(struct can_frame& frame)
-{
-	bool bRet = false;
-	
-	if (frame.can_dlc == 8)
-	{
-		unsigned short* p_cmd_code = (unsigned short*)((char*)frame.data + 4);
-		bRet = (*p_cmd_code == m_cmd_code);
-	}
-	
-	return bRet;
-}
-
-bool can_data::Check4Q(char* pData)
-{
-	if (NULL == pData)
-	{
-		return false;
-	}
-	
-	imu_body* p = (imu_body*)pData;
-	
-	if (p->q0 >= 1.0 || p->q1 >= 1.0 || p->q2 >= 1.0 || p->q3 >= 1.0)
-	{
-		return false;
-	}
-	
-	if (p->q0 <= -1.0 || p->q1 <= -1.0 || p->q2 <= -1.0 || p->q3 <= -1.0)
-	{
-		return false;
-	}
-	
-	float t = p->q0 * p->q0 + p->q1 * p->q1 + p->q2 * p-> q2 + p->q3 * p->q3;
-	if (t >= 0.95 && t <= 1.05)
-	{
-		return true;
-	}
-	
-	return false;
-}
-

@@ -2,7 +2,7 @@
 #define __VISION_H__
 
 #include <platform/base_vision.h>
-#include <can_interface.h>
+#include <packet.h>
 
 class CVisionRcm : public CBaseVision
 {
@@ -44,10 +44,15 @@ private :
 	
 	void GetIMU(IMU& imu);
 	
+	void AddImu(Packet* p);
+	
+	void AddMc(Packet* p);
+	
 private :
 
 	bool m_bRunning;
 	bool m_isImuReady;
+	bool m_isMcReady;
 	
 	int st_fd;
 	int m_fd;
@@ -56,12 +61,16 @@ private :
 	
 	can_interface* m_can0;
 	imu_body m_imu_body[QUEUE_SIZE];
+	MC	m_mc[QUEUE_SIZE];
 	
 	CAN_VELOCITY_DATA can_v[QUEUE_SIZE];
 	CAN_BM_DATA can_b[QUEUE_SIZE];
 	
 	int m_FetchPos;
 	int m_StorePos;
+	
+	int m_mcFetchPos;
+	int m_mcStorePos;
 	
 	int m_can_v_fetch;
 	int m_can_v_store;
@@ -71,6 +80,8 @@ private :
 	unsigned int m_index;
 	
 	unsigned char m_sndflg;
+	
+	vector<Filter_param> m_vFilter;
 	
 	static pthread_mutex_t imu_lock;
 	static pthread_mutex_t can_lock;

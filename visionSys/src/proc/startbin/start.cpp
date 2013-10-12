@@ -1,4 +1,5 @@
 #include <typedef.h>
+#include <datatype.h>
 
 static string getdir(const char* in)
 {
@@ -23,6 +24,25 @@ static string getdir(const char* in)
 	return out;
 }
 
+static string getUname()
+{
+	string outUname = "";
+	string strCmd = "uname -r";
+	
+	FILE* pf = popen(strCmd.c_str(), "r");
+	if (NULL == pf)
+	{
+		return outUname;
+	}
+	
+	char szBuf[1024] = {0};
+	fgets(szBuf, sizeof(szBuf), pf);
+	
+	outUname = string(szBuf);
+	
+	return outUname;
+}
+
 int main(int argc, char* argv[])
 {
 	string strCwd = getdir(argv[0]);
@@ -33,6 +53,11 @@ int main(int argc, char* argv[])
 		cout << "change dir error." << endl;
 		return 0;
 	}
+	
+	string uname = getUname();
+	string strlog = uname + " | " + SOFT_VERSION;
+	
+	LOGW("%s. %s : %d\n", strlog.c_str(), __FILE__, __LINE__);
 	
 	// Ìæ»»½ø³ÌÄÚÈÝ
 	if (-1 == execl("./visionRcm", "./visionRcm", (char*)0))
