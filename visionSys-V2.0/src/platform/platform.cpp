@@ -1,6 +1,13 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #include <platform/platform.h>
 #include <signal.h>
 #include "monitor.h"
+
+#define LOG_TAG "VISION_PLATFORM"
 
 static CCompoentInterface* pCompoentI = NULL;
 
@@ -33,7 +40,7 @@ static void sig_handle(int signo)
 {
 	if (SIGINT == signo)
 	{
-		//LOGE("recv sigint. %s : %d\n", __FILE__, __LINE__);
+		LOGE("recv sigint. %s : %d\n", __FILE__, __LINE__);
 		if (NULL != pCompoentI)
 		{
 			pCompoentI->Deactive();
@@ -53,7 +60,7 @@ int main(int argc, char* argv[])
 	
 	if (argc > 2)
 	{
-		//LOGE("a.out [<pname>]. %s : %d\n", __FILE__, __LINE__);
+		LOGE("a.out [<pname>]. %s : %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 	
@@ -61,12 +68,19 @@ int main(int argc, char* argv[])
 	
 	vector<PROC_CONFIG> vProcXmlNode;
 	vector<MSG_CONFIG> vMsgXmlNode;
+	vector<OPTION> vOption;
 	
 	// 加载配置文件
 	CXml xml;
 	if (!xml.ReadXml(CONFIG_XML, vProcXmlNode, vMsgXmlNode))
 	{
-		//LOGE("load xml config error. %s : %d\n", __FILE__, __LINE__);
+		LOGE("load xml config err. %s : %d\n", __FILE__, __LINE__);
+		return 0;
+	}
+	
+	if (!xml.ReadOption(CONFIG_XML, vOption))
+	{
+		LOGE("Read option err. %s : %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 	
@@ -77,12 +91,15 @@ int main(int argc, char* argv[])
 		pCompoentI = CreateInstance(ppname.c_str(), pname.c_str());
 		if (NULL == pCompoentI)
 		{
-			//LOGE("create instance error. %s : %d\n", __FILE__, __LINE__);
+			LOGE("create instance error. %s : %d\n", __FILE__, __LINE__);
 			break;
 		}
 		
 		// 添加消息配置信息
 		pCompoentI->AddConfig(vMsgXmlNode, vProcXmlNode);
+		
+		// 添加选项信息
+		pCompoentI->AddOption(vOption);
 		
 		bool bFlg = false;
 		
@@ -98,7 +115,7 @@ int main(int argc, char* argv[])
 					pid_t pid;
 					if ((pid = fork()) == -1)
 					{
-						//LOGE("fork proc error. %s : %d\n", __FILE__, __LINE__);
+						LOGE("fork proc error. %s : %d\n", __FILE__, __LINE__);
 						
 						bFlg = true;
 						break;
@@ -114,7 +131,7 @@ int main(int argc, char* argv[])
 						// 替换进程内容
 						if (-1 == execl(name.c_str(), name.c_str(), pname.c_str(), (char*)0))
 						{
-							//LOGE("%s exec error. %s : %d\n", name.c_str(), __FILE__, __LINE__);
+							LOGE("%s exec error. %s : %d\n", name.c_str(), __FILE__, __LINE__);
 							
 							bFlg = true;
 							break;
@@ -137,7 +154,7 @@ int main(int argc, char* argv[])
 		// 激活进程
 		if (-1 == pCompoentI->Active())
 		{
-			//LOGE("%s active error. %s : %d\n", pname.c_str(), __FILE__, __LINE__);
+			LOGE("%s active error. %s : %d\n", pname.c_str(), __FILE__, __LINE__);
 			break;
 		}
 		
@@ -145,7 +162,7 @@ int main(int argc, char* argv[])
 		// 执行
 		if (-1 == pCompoentI->Action())
 		{
-			//LOGE("%s action error. %s : %d\n", pname.c_str(), __FILE__, __LINE__);
+			LOGE("%s action error. %s : %d\n", pname.c_str(), __FILE__, __LINE__);
 			break;
 		}
 

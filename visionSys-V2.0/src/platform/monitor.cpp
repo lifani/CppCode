@@ -1,3 +1,8 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #include <typedef.h>
 #include "monitor.h"
 

@@ -1,3 +1,8 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #ifndef _VISION_MONITOR_H_
 #define _VISION_MONITOR_H_
 

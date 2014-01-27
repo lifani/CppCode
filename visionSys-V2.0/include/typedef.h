@@ -28,7 +28,6 @@
 
 using namespace std;
 
-#define LOG_TAG "VISION"
 #define CONFIG_XML "./config.xml"
 
 #endif

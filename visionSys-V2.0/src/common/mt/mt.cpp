@@ -1,3 +1,8 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #include <mt/mt.h>
 
 #include "shmTrans.h"
@@ -6,6 +11,13 @@
 static CShmTrans* g_pShmTrans = NULL;
 static CMsgTrans* g_pMsgTrans = NULL;
 
+/************************************
+功能：	注册
+参数：	vMsgConfig vector<MSG_CONFIG>& 消息配置信息
+		pname string 进程名
+		pid int 进程ID
+返回：	成功 0，失败 -1
+************************************/
 int CMT::Register(vector<MSG_CONFIG>& vMsgConfig, string& pname, int pid)
 {
 	key_t key = ftok(pname.c_str(), pid);
@@ -21,6 +33,11 @@ int CMT::Register(vector<MSG_CONFIG>& vMsgConfig, string& pname, int pid)
 	return 0;
 }
 
+/************************************
+功能：	注销
+参数：	无
+返回：	成功 0
+************************************/
 int CMT::Destory()
 {
 	if (NULL != g_pShmTrans)
@@ -38,6 +55,11 @@ int CMT::Destory()
 	return 0;
 }
 
+/************************************
+功能：	接收消息
+参数：	pMsg VISION_MSG* 消息指针, 不能为空
+返回：	成功 0，失败 -1
+************************************/
 int CMT::RecvMsg(VISION_MSG* pMsg)
 {
 	if (NULL == pMsg || NULL == g_pMsgTrans || NULL == g_pShmTrans)
@@ -61,6 +83,11 @@ int CMT::RecvMsg(VISION_MSG* pMsg)
 	return 0;
 }
 
+/************************************
+功能：	发送消息
+参数：	pMsg VISION_MSG* 消息指针, 不能为空
+返回：	成功 0，失败 -1
+************************************/
 int CMT::SendMsg(VISION_MSG* pMsg)
 {
 	if (NULL == pMsg || NULL == g_pMsgTrans || NULL == g_pShmTrans)

@@ -1,3 +1,8 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #ifndef __MSG_TRANS_H__
 #define __MSG_TRANS_H__
 

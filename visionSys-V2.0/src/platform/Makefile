@@ -1,13 +1,12 @@
 TARGET = ../../output/lib/libplatform.a
 
-#OBJECTS = base_vision.o monitor.o visionStore.o platform.o
 OBJECTS = base_vision.o monitor.o platform.o
 
 CFLAGS = -g -Wall -fPIC -I../../include -I../../third
 
 LDFLAGS = ar -r
 
-CXX = g++
+CXX = arm-linux-g++
 
 $(TARGET) : $(OBJECTS)
 	$(LDFLAGS) $(TARGET) $(OBJECTS)
@@ -17,9 +16,6 @@ base_vision.o : base_vision.cpp
 	
 monitor.o : monitor.cpp
 	$(CXX) $(CFLAGS) -c monitor.cpp
-	
-#visionStore.o : visionStore.cpp
-#	$(CXX) $(CFLAGS) -c visionStore.cpp
 	
 platform.o : platform.cpp
 	$(CXX) $(CFLAGS) -c platform.cpp

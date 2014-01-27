@@ -1,3 +1,8 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #ifndef __TRANS_INTERFACE_H__
 #define __TRANS_INTERFACE_H__
 

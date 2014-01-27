@@ -1,3 +1,8 @@
+/*************************************
+VERSION :	2.0
+CREATOR :	lifani
+DATE	:	2014.1.2
+*************************************/
 #ifndef __SHM_TRANS_H__
 #define __SHM_TRANS_H__
 
@@ -71,6 +76,10 @@ protected :
 private :
 
 	int Init(vector<MSG_CONFIG>& vMsgConfig, key_t key);
+	
+	int ReadDeamonMsg(VISION_MSG* pMsg);
+	
+	int WriteDeamonMsg(VISION_MSG* pMsg);
 
 private :
 
