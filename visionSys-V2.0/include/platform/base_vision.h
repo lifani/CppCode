@@ -3,7 +3,7 @@
 
 #include <compoentInterface.h>
 
-// Message dirve
+// Message drive
 
 #define DECLARE_MESSAGE_MAP \
 protected : \
@@ -140,13 +140,15 @@ public :
 	
 	static void* StartResTimer(void* arg);
 	
+protected :
+
+	void USleep(unsigned int usec);
+	
 private :
 
 	void GetProcInfo();
 	
 	void GetProcInfoImp(vector<PROC_CONFIG>& vProcConfig);
-	
-	void USleep(unsigned int usec);
 
 public :
 

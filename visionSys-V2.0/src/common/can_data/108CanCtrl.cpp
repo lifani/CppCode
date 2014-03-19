@@ -11,24 +11,19 @@ C108CanCtrl::C108CanCtrl()
 
 C108CanCtrl::~C108CanCtrl()
 {
+	LOGE("C108CanCtrl destroy.");
 }
 
-/************************************
-功能：	108处理类初始化
-参数：	pFrame struct can_frame* CAN数据帧
-返回：	成功 0，失败 -1
-************************************/
-int C108CanCtrl::Initialize(struct can_frame* pFrame)
+bool C108CanCtrl::CheckHead(char* ptr, int len)
 {
-	if (FRAME_LEN != pFrame->can_dlc)
+	if (CAbstractCanCtrl::CheckHead(ptr, len))
 	{
-		return -1;
+		m_cmdCode = *(unsigned short*)(ptr + 4);
+		if (m_cmdCode != 0x1007)
+		{
+			return true;
+		}
 	}
-
-	m_cmdCode = *(unsigned short*)(pFrame->data + 4);
-	if (m_cmdCode == 0x1007)
-	{
-		return -1;
-	}
-	return CAbstractCanCtrl::Initialize(pFrame);
+	
+	return false;
 }

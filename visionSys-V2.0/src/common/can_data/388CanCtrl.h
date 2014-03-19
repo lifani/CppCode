@@ -6,9 +6,9 @@ DATE	:	2014.1.2
 #ifndef __388_CAN_CTRL_H__
 #define __388_CAN_CTRL_H__
 
-#include "abstractCanCtrl.h"
+#include "newProtocolCanCtrl.h"
 
-class C388CanCtrl : public CAbstractCanCtrl
+class C388CanCtrl : public CNewProtocolCanCtrl
 {
 public :
 
@@ -16,8 +16,11 @@ public :
 	
 	virtual ~C388CanCtrl();
 	
-	virtual int Initialize(struct can_frame* pFrame);
+	virtual int GetContent(char*& ptr);	
 	
+	virtual bool CheckHead(char* ptr, int len);
+
+	virtual bool CheckTotal(char* ptr, int len);
 };
 
 #endif

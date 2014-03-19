@@ -9,6 +9,7 @@ DATE	:	2014.1.2
 
 #include "CHF.h"
 #include "canPacket.h"
+#include "comPacket.h"
 
 static unsigned int g_pos = 0;
 static bool g_running = true;
@@ -21,6 +22,7 @@ CTask::CTask() : m_pPacket(NULL), m_handler(NULL)
 
 CTask::~CTask()
 {
+	LOGE("CTask destroy.");
 }
 
 map<int, CAbstractPacket*> CHF::g_mapFdPacket;
@@ -59,11 +61,24 @@ int CHF::FD(ENUM_HF_TYPE type, int op)
 		
 		break;
 	}
+	case HF_COM:
+	{
+		pPacket = new CComPacket;
+		if (NULL == pPacket)
+		{
+			return -1;
+		}
+		
+		fd = pPacket->FD();
+		
+		g_ArrayPollFd[g_pos].events = POLLIN;
+		break;
+	}
 	default:
 		break;
 	};
 	
-	if (fd == 0)
+	if (fd == 0 && NULL != pPacket)
 	{
 		delete pPacket;
 		pPacket = NULL;
@@ -145,6 +160,18 @@ void CHF::SetContent(int fd, const char* ptr, int len)
 void CHF::Destroy()
 {
 	g_running = false;
+	
+	map<int, CAbstractPacket*>::iterator itm = g_mapFdPacket.begin();
+	for (; itm != g_mapFdPacket.end(); ++itm)
+	{
+		if (NULL != itm->second)
+		{
+			delete itm->second;
+			itm->second = NULL;
+		}
+	}
+	
+	LOGE("CHF::Destroy() called.");
 }
 
 /************************************
@@ -166,7 +193,7 @@ void* CHF::poll_run(void* arg)
 				g_ArrayTask[i].m_handler = NULL;
 			}
 		}
-		
+
 		int err = poll(g_ArrayPollFd, g_pos, 2);
 		if (err > 0)
 		{
@@ -186,7 +213,7 @@ void* CHF::poll_run(void* arg)
 					}
 					
 					if (g_ArrayPollFd[i].revents & POLLOUT)
-					{
+					{						
 						g_ArrayTask[g_uTaskNum].m_pPacket = g_mapFdPacket[fd];
 						g_ArrayTask[g_uTaskNum].m_handler = g_mapFdPacket[fd]->GetHandler(POLLOUT);
 						

@@ -5,6 +5,7 @@ DATE	:	2014.1.2
 *************************************/
 #include "queueCtrl.h"
 
+
 CQueueCtrl::CQueueCtrl(unsigned int t_size, unsigned int t_cnt, bool mode)
 : m_fetchPos(0)
 , m_storePos(0)
@@ -44,7 +45,7 @@ int CQueueCtrl::Initialize()
 			return -1;
 		}
 		
-		m_ptr[m_totalSize] = '\0';
+		memset(m_ptr, 0, m_totalSize + 1);
 	}
 	
 	return 0;
@@ -122,7 +123,7 @@ int CQueueCtrl::pop(char* ptr)
 	--m_cnt;
 	
 	pthread_mutex_unlock(&m_lock);
-	
+
 	return 0;
 }
 

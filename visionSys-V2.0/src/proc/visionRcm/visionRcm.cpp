@@ -25,6 +25,7 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 , m_fd(0)
 , m_regFd(0)
 , m_can0(0)
+, m_subs(0)
 , m_Sonar(0)
 , m_Naza(0)
 , m_Num(0)
@@ -35,7 +36,8 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 , m_ptr(0)
 , m_regPtr(0)
 , m_pData(0)
-, m_qCtrl(sizeof(CAN_VELOCITY_DATA), 10, true)
+, m_qCtrl(sizeof(CAN_VELOCITY_DATA), 10, false)
+, m_work(false)
 {
 }
 
@@ -72,6 +74,8 @@ int CVisionRcm::DeactiveImp()
 {
 	DisableFPGA();
 	
+	CHF::Destroy();
+	
 	// 关闭轮询文件描述符
 	close(t_fd);
 	
@@ -92,16 +96,6 @@ int CVisionRcm::DeactiveImp()
 	{
 		delete []m_pData;
 		m_pData = NULL;
-	}
-	
-	map<long, VISION_MSG*>::iterator itm = m_mapMsg.begin();
-	for (; itm != m_mapMsg.end(); ++itm)
-	{
-		if (NULL != itm->second)
-		{
-			delete itm->second;
-			itm->second = NULL;
-		}
 	}
 	
 	LOGW("VisionRcm deactived. %s : %d\n", __FILE__, __LINE__);
@@ -131,7 +125,7 @@ void CVisionRcm::TransData()
 		
 		// 将轮询标志位置0
 		WriteFlg(t_fd);
-		
+
 		// 发送数据
 		SendData();
 	}
@@ -145,7 +139,7 @@ void CVisionRcm::TransData()
 void CVisionRcm::ProcessVelocityMsg(VISION_MSG* pMsg)
 {	
 	if (NULL != pMsg)
-	{	
+	{
 		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)pMsg->data.ptr;
 		
 		m_qCtrl.push((char*)p);
@@ -160,13 +154,13 @@ void CVisionRcm::ProcessVelocityMsg(VISION_MSG* pMsg)
 void CVisionRcm::SendCanData()
 {
 	CAN_SNT_DATA tSntData;
-	
+
 	CAN_VELOCITY_DATA data;
 	if (m_qCtrl.pop((char*)&data) == 0)
 	{	
-		tSntData.can_id = 0x091;
+		tSntData.can_id = 0x095;
 		tSntData.data = (char*)&data;
-
+		
 		CHF::SetContent(m_can0, (char*)&tSntData, sizeof(CAN_VELOCITY_DATA));
 	}
 }
@@ -219,6 +213,13 @@ int CVisionRcm::Initialize()
 	if (-1 == m_can0)
 	{
 		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);
+		return -1;
+	}
+	
+	m_subs = CHF::FD(HF_COM);
+	if (-1 == m_subs)
+	{
+		LOGE("get com interface err. %s : %d\n", __FILE__, __LINE__);
 		return -1;
 	}
 	
@@ -443,28 +444,14 @@ void CVisionRcm::ReadData()
 	for (; itv != m_vMsgConfig.end(); ++itv)
 	{
 		if (itv->offset >= 0)
-		{
-			/*VISION_MSG* pMsg = m_mapMsg[itv->id];
-			if (NULL == pMsg)
-			{
-				m_mapMsg[itv->id] = new VISION_MSG;
-				
-				pMsg = m_mapMsg[itv->id];
-				pMsg->id = itv->id;
-				pMsg->data.ptr = (char*)(m_pData + pos);
-				pMsg->data.size = 0;
-			}*/
-			
+		{			
 			memcpy(m_pData + pos, m_ptr + itv->offset, itv->size);
-			
-			//pMsg->data.size += itv->size;
+
 			pos += itv->size;
 			
 			if (0 != itv->imu)
 			{
 				memcpy((char*)(m_pData + pos), (char*)&m_imu, sizeof(IMU_DATA));
-				
-				//pMsg->data.size += sizeof(IMU_DATA);
 				pos += sizeof(IMU_DATA);
 			}
 		}
@@ -503,24 +490,12 @@ void CVisionRcm::SendData()
 			
 			pos += msg.data.size;
 			
-			SendMsg(&msg);
+			if (0 != SendMsg(&msg))
+			{
+				LOGE("Send Msg err. msg id = %ld. %s : %d\n",  msg.id, __FILE__, __LINE__);
+			}
 		}
 	}
-	
-	/*map<long, VISION_MSG*>::iterator itm = m_mapMsg.begin();
-	for (; itm != m_mapMsg.end(); ++itm)
-	{
-		VISION_MSG* pMsg = itm->second;
-		if (NULL != pMsg)
-		{
-			SendMsg(pMsg);
-			
-			//pMsg->data.size = 0;
-			
-			delete itm->second;
-			itm->second = NULL;
-		}
-	}*/
 }
 
 /************************************

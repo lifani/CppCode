@@ -10,8 +10,8 @@ DATE	:	2014.1.2
 #include <datatype.h>
 
 #include <platform/base_vision.h>
+#include <platform/queueCtrl.h>
 
-#include "queueCtrl.h"
 #include "../../common/can_data/CHF.h"
 
 class CVisionRcm : public CBaseVision
@@ -32,6 +32,8 @@ public :
 	virtual int DeactiveImp();
 	
 	void TransData();
+	
+	void StoreData();
 	
 	void ProcessVelocityMsg(VISION_MSG* pMsg);
 	
@@ -83,6 +85,7 @@ private :
 	int m_fd;
 	int m_regFd;
 	int m_can0;
+	int m_subs;
 	
 	int m_Sonar;
 	int m_Naza;
@@ -97,11 +100,11 @@ private :
 	unsigned char* m_regPtr;
 	unsigned char* m_pData;
 	
-	map<long, VISION_MSG*> m_mapMsg;
-	
 	CQueueCtrl m_qCtrl;
 	
 	IMU_DATA m_imu;
+	
+	bool m_work;
 };
 
 #endif

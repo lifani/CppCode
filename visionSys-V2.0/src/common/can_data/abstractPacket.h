@@ -15,7 +15,7 @@ public :
 
 	virtual ~CAbstractPacket() {};
 	
-	virtual int FD(const char* identify, int op = 0) = 0;
+	virtual int FD(const char* identify = NULL, int op = 0) = 0;
 	
 	virtual int ReadFd() = 0;
 	

@@ -11,15 +11,39 @@ C388CanCtrl::C388CanCtrl()
 
 C388CanCtrl::~C388CanCtrl()
 {
+	LOGE("C388CanCtrl destroy.");
 }
 
-/************************************
-功能：	388处理类初始化
-参数：	pFrame struct can_frame* CAN数据帧
-返回：	成功 0，失败 -1
-************************************/
-int C388CanCtrl::Initialize(struct can_frame* pFrame)
+int C388CanCtrl::GetContent(char*& ptr)
 {
-	return CAbstractCanCtrl::Initialize(pFrame);
+	ptr = m_buf + 4;
+	
+	// 包结构: 0x55 + 长度(两个字节) + 校验和(1个字节) + 内容 + 校验和(两个字节)
+	return (int)m_size - 4 - 2;
 }
 
+bool C388CanCtrl::CheckHead(char* ptr, int len)
+{
+	if (CNewProtocolCanCtrl::CheckHead(ptr, len))
+	{
+		if (0xA2 == *(ptr + 7) || 0xC2 == *(ptr + 7))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+bool C388CanCtrl::CheckTotal(char* ptr, int len)
+{
+	if (CNewProtocolCanCtrl::CheckTotal(ptr, len))
+	{
+		if (0xA2 == *(ptr + 7) || 0xC2 == *(ptr + 7))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}

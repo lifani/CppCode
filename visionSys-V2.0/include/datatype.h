@@ -18,7 +18,7 @@
 #define CMD_CODE_ATTI		0x1002
 #define CMD_CODE_MC			0x1009
 
-#define MMAP_SIZE 			0x00100000
+#define MMAP_SIZE 			0x00800000
 
 #define SOFT_VERSION		"vl300-v2.0-T001"
 
@@ -26,6 +26,8 @@
 #define BM_ID				102
 #define VELOCITY_BACK		103
 #define BM_BACK				104
+#define STORE_FRONT			105
+#define STORE_BACK			106
 
 #define DEAMON_ID			110
 
@@ -61,7 +63,7 @@ class CBaseVision;
 typedef void (CBaseVision::*THREAD_FUNC)();
 
 class CCanPacket;
-typedef void (CCanPacket::*PROC_HANDLER)(struct can_frame* pFrame);
+typedef void (CCanPacket::*PROC_HANDLER)(char* ptr, int len);
 
 class CAbstractPacket;
 typedef int (CAbstractPacket::*HANDLER)();

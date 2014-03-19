@@ -16,7 +16,7 @@ public :
 	
 	virtual ~C108CanCtrl();
 	
-	virtual int Initialize(struct can_frame* pFrame);
+	virtual bool CheckHead(char* ptr, int len);
 };
 
 #endif

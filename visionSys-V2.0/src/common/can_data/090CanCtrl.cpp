@@ -11,27 +11,7 @@ C090CanCtrl::C090CanCtrl()
 
 C090CanCtrl::~C090CanCtrl()
 {
-}
-
-/************************************
-功能：	090处理类初始化
-参数：	pFrame struct can_frame* CAN数据帧
-返回：	成功 0，失败 -1
-************************************/
-int C090CanCtrl::Initialize(struct can_frame* pFrame)
-{
-	if (FRAME_LEN != pFrame->can_dlc)
-	{
-		return -1;
-	}
-	
-	m_cmdCode = *(unsigned short*)(pFrame->data + 4);
-	if (m_cmdCode == 0x1001)
-	{
-		return -1;
-	}
-
-	return CAbstractCanCtrl::Initialize(pFrame);
+	LOGE("C090CanCtrl destroy.");
 }
 
 /************************************
@@ -39,9 +19,28 @@ int C090CanCtrl::Initialize(struct can_frame* pFrame)
 参数：	无
 返回：	正确 true，错误 false
 ************************************/
-bool C090CanCtrl::Check()
+bool C090CanCtrl::CheckHead(char* ptr, int len)
 {
-	if (CAbstractCanCtrl::Check())
+	if (CAbstractCanCtrl::CheckHead(ptr, len))
+	{
+		m_cmdCode = *(unsigned short*)(ptr + 4);
+		if (m_cmdCode == 0x1002)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+/************************************
+功能：	校验
+参数：	无
+返回：	正确 true，错误 false
+************************************/
+bool C090CanCtrl::CheckTotal(char* ptr, int len)
+{
+	if (CAbstractCanCtrl::CheckTotal(ptr, len))
 	{
 		return Check4Q();
 	}

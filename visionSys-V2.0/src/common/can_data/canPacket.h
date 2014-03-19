@@ -22,7 +22,7 @@ public :
 	
 	virtual ~CCanPacket();
 	
-	virtual int FD(const char* identify, int op = 0);
+	virtual int FD(const char* identify = NULL, int op = 0);
 
 	virtual int ReadFd();
 	
@@ -41,39 +41,43 @@ private :
 	int CreateFd(const char* identify);
 	
 	void SetFilter(struct can_filter* pFilter, unsigned int size);
-
-	void Process388(struct can_frame* pFrame);
-
-	void Process108(struct can_frame* pFrame);
 	
-	void Process090(struct can_frame* pFrame);
+	void Process(struct can_frame* pFrame);
+
+	void Process388(char* ptr, int len);
+
+	void Process109(char* ptr, int len);
 	
-	void ChooseHandler(struct can_frame* pFrame);
+	void Process108(char* ptr, int len);
+	
+	void Process092(char* ptr, int len);
+	
+	void Process090(char* ptr, int len);
 	
 private :
+	
+	map<unsigned short, CAbstractCanCtrl*> m_mapRdCanCtrl;
+	map<unsigned short, CAbstractCanCtrl*> m_mapWrCanCtrl;
+	map<unsigned short, PROC_HANDLER> m_mapProcHandler; 
 	
 	int m_fd;
 	int m_key;
 	int m_bitrate;
 	int m_nContent;
 	
-	CAN_HEAD m_uCanHead;
+	unsigned int m_index;
 	
-	CAbstractCanCtrl* m_388CanCtrl;
-	CAbstractCanCtrl* m_108CanCtrl;
-	CAbstractCanCtrl* m_090CanCtrl;
+	CAN_HEAD m_uCanHead;
 	
 	HANDLER m_rHdl;
 	HANDLER m_wHdl;
 	
+	pthread_mutex_t m_lock;
+	
 	CQueueCtrl m_388Queue;
-	CQueueCtrl m_090Queue;
+	CQueueCtrl m_imuQueue;
 	
-	map<unsigned short, CAbstractCanCtrl*> m_mapRdCanCtrl;
-	map<unsigned short, CAbstractCanCtrl*> m_mapWrCanCtrl;
-	map<unsigned short, PROC_HANDLER> m_mapProcHandler; 
-	
-	static map<unsigned short, PROC_HANDLER> g_mapProcHandler;
+	char m_tBuf[256];
 };
 
 #endif

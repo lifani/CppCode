@@ -2,7 +2,7 @@ TARGET = ../../../output/visionVelocity
 
 OBJECTS = visionVelocity.o
 
-CFLAGS = -g -Wall -I../../../include -I../../../third
+CFLAGS = -g -rdynamic -Wall -I../../../include -I../../../third
 
 LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output  -lplatform -lvo -lmt -llog -lxml -lpthread -lrt
 

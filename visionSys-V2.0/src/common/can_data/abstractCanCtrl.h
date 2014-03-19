@@ -26,6 +26,8 @@ DATE	:	2014.1.2
 #include <typedef.h>
 #include <datatype.h>
 
+#define LOG_TAG "CAN_CTRL"
+
 #pragma pack(1)
 
 typedef struct _NormalMode
@@ -51,9 +53,9 @@ typedef struct _NormalMode
 	float compass_scale_z;
 } NormalMode;
 
-typedef struct tManageControlData
+typedef struct tManageCtrlDataA2
 {
-	int				head;
+	char			head[4];
 	unsigned int  	g_real_clock;
 	short 			g_real_input_channel_COMMAND_AILERON;
 	short 			g_real_input_channel_COMMAND_ELEVATOR;
@@ -113,7 +115,52 @@ typedef struct tManageControlData
 	unsigned int  	imu_package_lost_count;
 	unsigned char	ctrl_data_hold_horizontal;
 	short  			g_real_status_main_batery_voltage;
-} ManageControlData;
+} ManageCtrlDataA2;
+
+typedef struct tManageCtrlDataC2
+{
+	char		   head[4];
+	unsigned short pulseout_1;
+	unsigned short pulseout_2;
+	unsigned short pulseout_3;
+	unsigned short pulseout_4;
+	unsigned short pulseout_5;
+	unsigned short pulseout_6;
+	unsigned short pulseout_7;
+	unsigned short pulseout_8;
+	//unsigned short null_1;
+	//unsigned short null_2;
+	short		   in_1;
+	short		   in_2;
+	short		   in_3;
+	short		   in_4;
+	short		   in_5;
+	short		   in_6;
+	short		   in_7;
+	short		   in_8;
+	short		   in_9;
+	short		   in_10;
+	short		   out1000_1;
+	short		   out1000_2;
+	short		   out1000_3;
+	short		   out1000_4;
+	short		   out1000_5;
+	short		   out1000_6;
+	short		   out1000_7;
+	short		   out1000_8;
+	short		   out1000_9;
+	short		   out1000_10;
+	short		   out_1;
+	short		   out_2;
+	short		   out_3;
+	short		   out_4;
+	short		   out_5;
+	short		   out_6;
+	short		   out_7;
+	short		   out_8;
+	short		   out_9;
+	short		   out_10;
+} ManageCtrlDataC2;
 
 typedef struct cmd_imu_body
 {
@@ -181,7 +228,7 @@ public :
 	
 	virtual ~CAbstractCanCtrl();
 	
-	virtual int Initialize(struct can_frame* pFrame);
+	virtual int Initialize(unsigned short canId, unsigned short cmd);
 	
 	virtual int Process(struct can_frame* pFrame);
 	
@@ -189,12 +236,17 @@ public :
 	
 	virtual int SetContent(char* ptr, int len);
 	
-	virtual bool Check();
+	virtual bool CheckHead(char* ptr, int len);
+	
+	virtual bool CheckTotal(char* ptr, int len);
 	
 	virtual void SetKey(int key = 0);
 	
 protected :
+	
+	bool m_begin;
 
+	unsigned short m_canId;
 	unsigned short m_cmdCode;
 	unsigned int m_size;
 	
@@ -203,7 +255,7 @@ protected :
 	CAN_HEAD m_uCanHead;
 	CAN_TAIL m_uCanTail;
 	
-	char* m_buf; 
+	char m_buf[256]; 
 
 	int m_key;
 };

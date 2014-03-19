@@ -5,8 +5,9 @@ DATE	:	2014.1.2
 *************************************/
 #include "canPacket.h"
 
+#include "newProtocolCanCtrl.h"
+#include "sndCanCtrl.h"
 #include "090CanCtrl.h"
-#include "091CanCtrl.h"
 #include "108CanCtrl.h"
 #include "388CanCtrl.h"
 
@@ -18,17 +19,13 @@ DATE	:	2014.1.2
 #define AF_CAN PF_CAN
 #endif
 
-map<unsigned short, PROC_HANDLER> CCanPacket::g_mapProcHandler;
-
-CCanPacket::CCanPacket() : m_fd(0), m_key(0), m_bitrate(1000000), m_nContent(0)
-, m_388CanCtrl(NULL)
-, m_108CanCtrl(NULL)
-, m_090CanCtrl(NULL)
+CCanPacket::CCanPacket() : m_fd(0), m_key(0), m_bitrate(1000000), m_nContent(0), m_index(0)
 , m_rHdl((HANDLER)0)
 , m_wHdl((HANDLER)0)
 , m_388Queue(sizeof(MC), 10, true)
-, m_090Queue(sizeof(IMU_DATA), 10, true)
+, m_imuQueue(sizeof(IMU_DATA), 10, true)
 {
+	pthread_mutex_init(&m_lock, NULL);
 }
 
 CCanPacket::~CCanPacket()
@@ -42,6 +39,20 @@ CCanPacket::~CCanPacket()
 			itm->second = NULL;
 		}
 	}
+	
+	itm = m_mapWrCanCtrl.begin();
+	for (; itm != m_mapWrCanCtrl.end(); ++itm)
+	{
+		if (NULL != itm->second)
+		{
+			delete itm->second;
+			itm->second = NULL;
+		}
+	}
+	
+	pthread_mutex_destroy(&m_lock);
+	
+	LOGE("CCanPacket destroy.");
 }
 
 /************************************
@@ -80,17 +91,8 @@ int CCanPacket::ReadFd()
 	{
 		return -1;
 	}
-	
-	PROC_HANDLER hdl = m_mapProcHandler[frame.can_id];
-	
-	if (PROC_HANDLER(0) != hdl)
-	{
-		(this->*hdl)(&frame);
-	}
-	else
-	{
-		ChooseHandler(&frame);
-	}
+
+	Process(&frame);
 
 	return 0;
 }
@@ -108,27 +110,31 @@ int CCanPacket::WriteFd()
 	for (; itm != m_mapWrCanCtrl.end(); ++itm)
 	{	
 		// 若失败，则再重试至成功为止
-		while ( NULL != itm->second)
+		if ( NULL != itm->second)
 		{
-			int err = itm->second->Process(&frame);
-			if (err > 0)
+			//int err = itm->second->Process(&frame);
+			if (itm->second->Process(&frame) > 0)
 			{
-				if (write(m_fd, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame))
+				while (write(m_fd, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame))
 				{
 					usleep(2000);
 					continue;
 				}
+				
+				break;
 			}
-			else if (0 == err)
+			/*else if (0 == err)
 			{
+				pthread_mutex_lock(&m_lock);
 				m_nContent = m_nContent > 0 ? (m_nContent - 1) : 0;
 				if (0 == m_nContent)
 				{
 					m_wHdl = (HANDLER)0;
 				}
-			}
+				pthread_mutex_unlock(&m_lock);
+			}*/
 			
-			break;
+			//break;
 		}
 	}
 	
@@ -150,7 +156,7 @@ void CCanPacket::GetContent(char* ptr, int* len)
 	
 	// 090数据
 	IMU_DATA imu;
-	m_090Queue.pop((char*)&imu);
+	m_imuQueue.pop((char*)&imu);
 	
 	// 388数据
 	m_388Queue.pop((char*)&(imu.mc));
@@ -174,24 +180,30 @@ void CCanPacket::SetContent(const char* ptr, int len)
 	}
 	
 	const CAN_SNT_DATA* pCanData = (CAN_SNT_DATA*)ptr;
-	if (NULL == pCanData)
-	{
-		return;
-	}
+	//if (NULL == pCanData)
+	//{
+	//	return;
+	//}
+	
+	//pthread_mutex_lock(&m_lock);
 	
 	CAbstractCanCtrl* p = m_mapWrCanCtrl[pCanData->can_id];
 	if (NULL != p)
 	{
-		p->SetContent(pCanData->data, len);
+		if (-1 == p->SetContent(pCanData->data, len))
+		{
+			LOGE("push data err, can id = %d\n", pCanData->can_id);
+		}
 		
-		++m_nContent;
+		//++m_nContent;
 	}
 	
+	//if (m_nContent > 0)
+	//{
+	//	m_wHdl = static_cast<HANDLER>(&CCanPacket::WriteFd);
+	//}
 	
-	if (m_nContent > 0)
-	{
-		m_wHdl = static_cast<HANDLER>(&CCanPacket::WriteFd);
-	}
+	//pthread_mutex_unlock(&m_lock);
 }
 
 /************************************
@@ -221,41 +233,28 @@ HANDLER CCanPacket::GetHandler(short event)
 返回:	成功 0, 失败 -1
 ************************************/
 int CCanPacket::Initialize(int op)
-{
-	m_uCanHead.szHead[0] = 0x55;
-	m_uCanHead.szHead[1] = 0xaa;
-	m_uCanHead.szHead[2] = 0x55;
-	m_uCanHead.szHead[3] = 0xaa;
-	
-	m_mapProcHandler[0x388] = NULL;
-	m_mapProcHandler[0x108] = NULL;
-	m_mapProcHandler[0x090] = NULL;
-	
-	g_mapProcHandler[0x388] = &CCanPacket::Process388;
-	g_mapProcHandler[0x108] = &CCanPacket::Process108;
-	
-	// first be setted NULL
-	g_mapProcHandler[0x090] = NULL;
-	
-	if (op)
-	{
-		g_mapProcHandler[0x090] = &CCanPacket::Process090;
-		g_mapProcHandler[0x108] = NULL;
-	}
+{	
+	m_mapProcHandler[0x388] = &CCanPacket::Process388;
+	m_mapProcHandler[0x109] = &CCanPacket::Process109;
+	m_mapProcHandler[0x108] = &CCanPacket::Process108;
+	m_mapProcHandler[0x092] = &CCanPacket::Process092;
+	m_mapProcHandler[0x090] = &CCanPacket::Process090;
 	
 	m_mapRdCanCtrl[0x090] = new C090CanCtrl;
+	m_mapRdCanCtrl[0x092] = new CNewProtocolCanCtrl;
 	m_mapRdCanCtrl[0x108] = new C108CanCtrl;
+	m_mapRdCanCtrl[0x109] = new CNewProtocolCanCtrl;
 	m_mapRdCanCtrl[0x388] = new C388CanCtrl;
 	
-	m_mapWrCanCtrl[0x091] = new C091CanCtrl;
+	m_mapWrCanCtrl[0x095] = new CSndCanCtrl;
 	
-	m_mapWrCanCtrl[0x091]->Initialize(NULL);
+	m_mapWrCanCtrl[0x095]->Initialize(0x095, 0x1005);
 
-	m_090Queue.Initialize();
+	m_imuQueue.Initialize();
 	m_388Queue.Initialize();
 	
 	m_rHdl = static_cast<HANDLER>(&CCanPacket::ReadFd);
-	m_wHdl = (HANDLER)0;
+	m_wHdl = static_cast<HANDLER>(&CCanPacket::WriteFd);
 	
 	return 0;
 }
@@ -312,7 +311,7 @@ int CCanPacket::CreateFd(const char* identify)
 	
 	// 设置过滤条件
 	struct can_filter rfilter[1];
-	rfilter[0].can_id 	= 0x108;
+	rfilter[0].can_id 	= 0x109;
 	rfilter[0].can_mask = CAN_SFF_MASK;
 	
 	SetFilter(rfilter, sizeof(can_filter));
@@ -336,30 +335,50 @@ void CCanPacket::SetFilter(struct can_filter* pFilter, unsigned int size)
 	setsockopt(m_fd, SOL_CAN_RAW, CAN_RAW_FILTER, pFilter, size);
 }
 
-/************************************
-功能：	处理388数据帧
-参数：	pFrame struct can_frame* 数据帧
-返回:	无
-************************************/
-void CCanPacket::Process388(struct can_frame* pFrame)
+void CCanPacket::Process(struct can_frame* pFrame)
 {
-	m_388CanCtrl = m_mapRdCanCtrl[pFrame->can_id];
-	if (NULL == pFrame || NULL == m_388CanCtrl)
+	if (NULL == pFrame)
 	{
 		return;
 	}
 	
-	int err = m_388CanCtrl->Process(pFrame);
-	if ( err > 0)
+	CAbstractCanCtrl* pCanCtrl = m_mapRdCanCtrl[pFrame->can_id];
+	if (NULL == pCanCtrl)
+	{
+		return;
+	}
+
+	if (0 == pCanCtrl->Process(pFrame))
 	{
 		char* pData = NULL;
+		int len = pCanCtrl->GetContent(pData);
 		
-		int len = m_388CanCtrl->GetContent(pData);
-		if ((unsigned int)len >= sizeof(ManageControlData) && NULL != pData)
+		// 处理内容
+		PROC_HANDLER hdl = m_mapProcHandler[pFrame->can_id];
+	
+		if (PROC_HANDLER(0) != hdl)
 		{
-			ManageControlData* p = (ManageControlData*)pData;
+			(this->*hdl)(pData, len);
+		}
 		
-			MC mc;
+		usleep(3000);
+	}
+}
+
+/************************************
+功能：	处理388数据
+参数：	ptr 内容 len  长度
+返回:	无
+************************************/
+void CCanPacket::Process388(char* ptr, int len)
+{
+	if (NULL != ptr)
+	{
+		MC mc;
+		
+		if (0xA2 == *(ptr + 3))
+		{
+			ManageCtrlDataA2* p = (ManageCtrlDataA2*)ptr;
 			
 			// 赋值
 			mc.pitch 	= p->g_real_input_control_core_pitch;
@@ -370,167 +389,162 @@ void CCanPacket::Process388(struct can_frame* pFrame)
 			mc.throttle = p->g_real_input_channel_COMMAND_THROTTLE;
 			mc.rudder 	= p->g_real_input_channel_COMMAND_RUDDER;
 			mc.coretail = p->g_real_input_control_core_tail;
+		}
+		else if (0xC2 == *(ptr + 3))
+		{
+			ManageCtrlDataC2* p = (ManageCtrlDataC2*)ptr;
 			
-			m_388Queue.push((char*)&mc);
-			
-			m_mapProcHandler[0x388] = NULL;
+			// 赋值
+			mc.pitch 	= p->in_3;
+			mc.roll 	= p->in_4;
+			mc.alti 	= p->in_5;	
+			mc.aileron 	= 0;
+			mc.elevator = 0;
+			mc.throttle = 0;
+			mc.rudder 	= 0;
+			mc.coretail = 0;
 		}
 		
-		usleep(3000);
-	}
-	else if (-1 == err)
-	{
-		m_mapProcHandler[0x388] = NULL;
-		
-		usleep(3000);
+		m_388Queue.push((char*)&mc);
 	}
 }
 
 /************************************
-功能：	处理108数据帧
-参数：	pFrame struct can_frame* 数据帧
+功能：	处理109数据
+参数：	ptr 内容 len  长度
 返回:	无
 ************************************/
-void CCanPacket::Process108(struct can_frame* pFrame)
+void CCanPacket::Process109(char* ptr, int len)
 {
-	m_108CanCtrl = m_mapRdCanCtrl[pFrame->can_id];
-	if (NULL == pFrame || NULL == m_108CanCtrl)
+	if ((unsigned int)len >= sizeof(NormalMode) && NULL != ptr)
 	{
-		return;
-	}
+		NormalMode* p = (NormalMode*)ptr;
 	
-	int err = m_108CanCtrl->Process(pFrame);
-	if (err > 0)
-	{
-		char* pData = NULL;
-		int len = m_108CanCtrl->GetContent(pData);
-		if ((unsigned int)len >= sizeof(NormalMode) && NULL != pData)
-		{
-			NormalMode* p = (NormalMode*)pData;
+		// 设置秘钥
+		m_key = p->key;
 		
-			// 设置秘钥
-			m_key = p->key;
-			
-			LOGW("key = %d. %s : %d\n", m_key, __FILE__, __LINE__);
+		LOGW("key = %d. %s : %d\n", m_key, __FILE__, __LINE__);
 
-			m_090CanCtrl = m_mapRdCanCtrl[0x090];
-			if (NULL != m_090CanCtrl)
-			{
-				m_090CanCtrl->SetKey(m_key);
-			}
-			
-			// 设置过滤条件
-			struct can_filter rfilter[2];
-			rfilter[0].can_id 	= 0x090;
-			rfilter[0].can_mask = CAN_SFF_MASK;
-			rfilter[1].can_id 	= 0x388;
-			rfilter[1].can_mask = CAN_SFF_MASK;
-			
-			SetFilter(rfilter, sizeof(can_filter) * 2);
-			
-			// 切换工作模式
-			m_mapProcHandler[0x108] = NULL;
-			g_mapProcHandler[0x108] = NULL;
-			g_mapProcHandler[0x090] = &CCanPacket::Process090;
+		CAbstractCanCtrl* pCanCtrl = m_mapRdCanCtrl[0x092];
+		if (NULL != pCanCtrl)
+		{
+			pCanCtrl->SetKey(m_key);
 		}
-	}
-	else if (-1 == err)
-	{
-		m_mapProcHandler[0x108] = NULL;
+		
+		// 设置过滤条件
+		struct can_filter rfilter[2];
+		rfilter[0].can_id 	= 0x092;
+		rfilter[0].can_mask = CAN_SFF_MASK;
+		rfilter[1].can_id 	= 0x388;
+		rfilter[1].can_mask = CAN_SFF_MASK;
+		
+		SetFilter(rfilter, sizeof(can_filter) * 2);
 	}
 }
 
 /************************************
-功能：	处理090数据帧
-参数：	pFrame struct can_frame* 数据帧
+功能：	处理108数据
+参数：	ptr 内容 len  长度
 返回:	无
 ************************************/
-void CCanPacket::Process090(struct can_frame* pFrame)
+void CCanPacket::Process108(char* ptr, int len)
 {
-	m_090CanCtrl = m_mapRdCanCtrl[pFrame->can_id];
-	if (NULL == pFrame || NULL == m_090CanCtrl)
+	if ((unsigned int)len >= sizeof(NormalMode) && NULL != ptr)
 	{
-		return;
-	}
+		NormalMode* p = (NormalMode*)ptr;
 	
-	int err = m_090CanCtrl->Process(pFrame);
-	if (err > 0)
-	{
-		char* pData = NULL;
+		// 设置秘钥
+		m_key = p->key;
 		
-		int len = m_090CanCtrl->GetContent(pData);
-		if ((unsigned int)len >= sizeof(imu_body) && NULL != pData)
+		LOGW("key = %d. %s : %d\n", m_key, __FILE__, __LINE__);
+
+		CAbstractCanCtrl* pCanCtrl = m_mapRdCanCtrl[0x090];
+		if (NULL != pCanCtrl)
 		{
-			imu_body* p = (imu_body*)pData;
-			
-			IMU_DATA imu;
-			
-			imu.acc_x = p->acc_x;
-			imu.acc_y = p->acc_y;
-			imu.acc_z = p->acc_z;
-					
-			imu.gyro_x = p->gyro_x;
-			imu.gyro_y = p->gyro_y;
-			imu.gyro_z = p->gyro_z;
-			
-			imu.press = p->press;
-			
-			imu.q0 = p->q0;
-			imu.q1 = p->q1;
-			imu.q2 = p->q2;
-			imu.q3 = p->q3;
-			
-			imu.vgx = p->vgx;
-			imu.vgy = p->vgy;
-			imu.vgz = p->vgz;
-
-			m_090Queue.push((char*)&imu);
-
-			m_mapProcHandler[0x090] = NULL;
+			pCanCtrl->SetKey(m_key);
 		}
 		
-		usleep(3000);
-	}
-	else if (-1 == err)
-	{
-		m_mapProcHandler[0x090] = NULL;
+		// 设置过滤条件
+		struct can_filter rfilter[2];
+		rfilter[0].can_id 	= 0x090;
+		rfilter[0].can_mask = CAN_SFF_MASK;
+		rfilter[1].can_id 	= 0x388;
+		rfilter[1].can_mask = CAN_SFF_MASK;
 		
-		usleep(3000);
+		SetFilter(rfilter, sizeof(can_filter) * 2);
 	}
 }
 
 /************************************
-功能：	选择处理句柄
-参数：	pFrame struct can_frame* 数据帧
+功能：	处理092数据
+参数：	ptr 内容 len  长度
 返回:	无
 ************************************/
-void CCanPacket::ChooseHandler(struct can_frame* pFrame)
-{	
-	if (NULL == pFrame || FRAME_LEN != pFrame->can_dlc)
+void CCanPacket::Process092(char* ptr, int len)
+{
+	if ((unsigned int)len >= sizeof(imu_body) && NULL != ptr)
 	{
-		return;
+		imu_body* p = (imu_body*)ptr;
+		
+		IMU_DATA imu;
+		
+		//imu.acc_x = p->acc_x;
+		imu.acc_x = m_index++;
+		imu.acc_y = p->acc_y;
+		imu.acc_z = p->acc_z;
+				
+		imu.gyro_x = p->gyro_x;
+		imu.gyro_y = p->gyro_y;
+		imu.gyro_z = p->gyro_z;
+		
+		imu.press = p->press;
+		
+		imu.q0 = p->q0;
+		imu.q1 = p->q1;
+		imu.q2 = p->q2;
+		imu.q3 = p->q3;
+		
+		imu.vgx = p->vgx;
+		imu.vgy = p->vgy;
+		imu.vgz = p->vgz;
+
+		m_imuQueue.push((char*)&imu);
 	}
+}
 
-	unsigned int uHead = *((unsigned int*)pFrame->data);
-	
-	if (m_uCanHead.uHead == uHead)
+/************************************
+功能：	处理090数据
+参数：	ptr 内容 len  长度
+返回:	无
+************************************/
+void CCanPacket::Process090(char* ptr, int len)
+{
+	if ((unsigned int)len >= sizeof(imu_body) && NULL != ptr)
 	{
-		CAbstractCanCtrl* pCan = m_mapRdCanCtrl[pFrame->can_id];
-		if (NULL == pCan)
-		{
-			return;
-		}
+		imu_body* p = (imu_body*)ptr;
+		
+		IMU_DATA imu;
+		
+		imu.acc_x = p->acc_x;
+		imu.acc_y = p->acc_y;
+		imu.acc_z = p->acc_z;
+				
+		imu.gyro_x = p->gyro_x;
+		imu.gyro_y = p->gyro_y;
+		imu.gyro_z = p->gyro_z;
+		
+		imu.press = p->press;
+		
+		imu.q0 = p->q0;
+		imu.q1 = p->q1;
+		imu.q2 = p->q2;
+		imu.q3 = p->q3;
+		
+		imu.vgx = p->vgx;
+		imu.vgy = p->vgy;
+		imu.vgz = p->vgz;
 
-		if (-1 == pCan->Initialize(pFrame))
-		{
-			return;
-		}
-	
-		PROC_HANDLER hdl = g_mapProcHandler[pFrame->can_id];
-		if (PROC_HANDLER(0) != hdl)
-		{
-			m_mapProcHandler[pFrame->can_id] = hdl;
-		}
+		m_imuQueue.push((char*)&imu);
 	}
 }
 

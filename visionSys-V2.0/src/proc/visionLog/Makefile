@@ -2,7 +2,7 @@ TARGET = ../../../output/visionLog
 
 OBJECTS = visionLog.o
 
-CFLAGS = -g -Wall -I../../../include -I../../../third
+CFLAGS = -g -rdynamic -Wall -I../../../include -I../../../third
 
 LDFLAGS = -Wl,-rpath,./ -L../../../output -lxml
 

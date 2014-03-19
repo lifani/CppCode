@@ -15,10 +15,10 @@ public :
 	C090CanCtrl();
 	
 	virtual ~C090CanCtrl();
-
-	virtual int Initialize(struct can_frame* pFrame);
 	
-	virtual bool Check();
+	virtual bool CheckHead(char* ptr, int len);
+	
+	virtual bool CheckTotal(char* ptr, int len);
 	
 private :
 

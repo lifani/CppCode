@@ -1,6 +1,6 @@
 TARGET = ../../../output/libmt.so
 OBJECTS = mt.o shmTrans.o vSem.o msgTrans.o
-CFLAGS = -g -Wall -fPIC -I../../../include
+CFLAGS = -g -rdynamic -Wall -fPIC -I../../../include
 LDFLAGS = -shared
 
 CXX = arm-linux-g++
