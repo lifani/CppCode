@@ -77,20 +77,10 @@ int CBaseVision::Active()
 	
 	// 注册通信模块
 	string strAbsName = "";
-	if (m_vProcInfo.size() > 0)
-	{
-		strAbsName = m_strCwd + string("/") + m_pname;
-		if (CMT::Register(m_vMsgConfig, strAbsName, m_pid) == -1)
-		{
-			// log
-			return -1;
-		}
-	}
-	
 	if (!m_ppname.empty())
 	{
 		strAbsName = m_strCwd + string("/") + m_ppname;
-		if (CMT::Register(m_vMsgConfig, strAbsName, m_ppid) == -1)
+		if (CMT::Register(m_mapPMsgTag, strAbsName, m_ppid) == -1)
 		{
 			// log
 			return -1;
@@ -100,7 +90,17 @@ int CBaseVision::Active()
 	// 注册线程函数
 	RegisterThread(&CBaseVision::HandleMessage);
 	
-	return ActiveImp();
+	// 调用子类激活函数
+	
+	if (-1 == ActiveImp())
+	{
+		return -1;
+	}
+	
+	// 注册消息生成函数
+	InitMsgFunc();
+	
+	return 0;
 }
 
 /************************************
@@ -169,10 +169,30 @@ int CBaseVision::Deactive()
 }
 
 // 消息配置信息
-void CBaseVision::AddConfig(vector<MSG_CONFIG>& vMsgXmlNode, vector<PROC_CONFIG>& vProcXmlNode)
+void CBaseVision::AddMsgTag(const map<long, MSG_TAG*>& mapMsgTag, const map<string, PROC_TAG>& mapProcTag)
 {	
-	m_vMsgConfig = vMsgXmlNode;
-	m_vProcConfig = vProcXmlNode;
+	m_mapPMsgTag = mapMsgTag;
+	
+	map<string, PROC_TAG>::const_iterator itm = mapProcTag.begin();
+	for (; itm != mapProcTag.end(); ++itm)
+	{
+		if (itm->first.compare(m_pname) == 0)
+		{
+			m_procTag = itm->second;
+			return;
+		}
+		
+		vector<PROC_TAG>::const_iterator itv = itm->second.vProcTag.begin();
+		for (; itv != itm->second.vProcTag.end(); ++itv)
+		{
+			if (itv->name.compare(m_pname) == 0)
+			{
+				m_procTag = *itv;
+
+				return;
+			}
+		}
+	}
 }
 
 // 子进程信息
@@ -244,6 +264,19 @@ int CBaseVision::SendMsg(VISION_MSG* pMsg)
 	return CMT::SendMsg(pMsg);
 }
 
+int CBaseVision::SendSmallMsg(long id, char* ptr, unsigned int size)
+{
+	VISION_MSG msg;
+	
+	msg.id = id;
+	msg.data.size = size;
+	msg.data.ptr = NULL;
+	
+	memcpy(msg.data.buf, ptr, size);
+	
+	return CMT::SendMsg(&msg);
+}
+
 void CBaseVision::RegisterThread(THREAD_FUNC pfn)
 {
 	THREAD_ENTRY entry;
@@ -251,6 +284,11 @@ void CBaseVision::RegisterThread(THREAD_FUNC pfn)
 	entry.pfn = pfn;
 	
 	m_vThreadEntry.push_back(entry);
+}
+
+void CBaseVision::RegisterMsgFunc(string name, MSG_FUNC func)
+{
+	m_mapMsgFunc[name] = func;
 }
 
 bool CBaseVision::IsRunning()
@@ -458,7 +496,8 @@ void CBaseVision::KillTimer()
 
 void CBaseVision::GetProcInfo()
 {
-	GetProcInfoImp(m_vProcConfig);
+	m_pid = m_procTag.pid;
+	m_ppid = m_procTag.ppid;
 	
 	char szPath[256] = {0};
 	getcwd(szPath, sizeof(szPath));
@@ -466,25 +505,20 @@ void CBaseVision::GetProcInfo()
 	m_strCwd = string(szPath);
 }
 
-void CBaseVision::GetProcInfoImp(vector<PROC_CONFIG>& vProcConfig)
+void CBaseVision::InitMsgFunc()
 {
-	vector<PROC_CONFIG>::iterator it = vProcConfig.begin();
-	for (; it != vProcConfig.end(); ++it)
+	vector<MSG_TAG*>::iterator itv = m_procTag.vPMsgTag.begin();
+	for (; itv != m_procTag.vPMsgTag.end(); ++itv)
 	{
-		if (m_pname.compare(it->name) == 0)
+		MSG_TAG* pMsgTag = *itv;
+		
+		while (NULL != pMsgTag)
 		{
-			m_pid = it->pid;
-			m_ppid = it->ppid;
+			pMsgTag->pf = m_mapMsgFunc[pMsgTag->fun_name];
 			
-			return;
-		}
-		else
-		{
-			GetProcInfoImp(it->vProcConfig);
+			pMsgTag = pMsgTag->next;
 		}
 	}
-	
-	return;
 }
 
 void CBaseVision::USleep(unsigned int usec)

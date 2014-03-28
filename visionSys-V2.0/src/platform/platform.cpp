@@ -120,23 +120,27 @@ int main(int argc, char* argv[])
 	signal(SIGABRT, fun_dump);
 	signal(SIGBUS, fun_dump);
 	
-	vector<PROC_CONFIG> vProcXmlNode;
-	vector<MSG_CONFIG> vMsgXmlNode;
-	vector<OPTION> vOption;
-	
 	// 加载配置文件
 	CXml xml;
-	if (!xml.ReadXml(CONFIG_XML, vProcXmlNode, vMsgXmlNode))
+	if (!xml.LoadXml(CONFIG_XML))
 	{
-		LOGE("load xml config err. %s : %d\n", __FILE__, __LINE__);
+		LOGE("load %s err. %s : %d\n", CONFIG_XML, __FILE__, __LINE__);
 		return 0;
 	}
 	
-	if (!xml.ReadOption(CONFIG_XML, vOption))
-	{
-		LOGE("Read option err. %s : %d\n", __FILE__, __LINE__);
-		return 0;
-	}
+	map<string, PROC_TAG> mapProcTag;
+	map<long, MSG_TAG*> mapPMsgTag;
+	vector<OPTION> vOption;
+	
+	// 获取进程配置信息
+	xml.GetProcTag(mapProcTag);
+	
+	// 获取消息配置
+	xml.GetMsgTag(mapPMsgTag);
+	
+	// 获取配置参数信息
+	xml.GetOption(vOption);
+	
 	
 	do {
 	
@@ -149,23 +153,23 @@ int main(int argc, char* argv[])
 			break;
 		}
 		
-		// 添加消息配置信息
-		pCompoentI->AddConfig(vMsgXmlNode, vProcXmlNode);
-		
-		// 添加选项信息
+		// 添加配置参数信息
 		pCompoentI->AddOption(vOption);
+		
+		pCompoentI->AddMsgTag(mapPMsgTag, mapProcTag);
 		
 		bool bFlg = false;
 		
-		vector<PROC_CONFIG>::iterator itr = vProcXmlNode.begin();
-		for (; itr != vProcXmlNode.end(); ++itr)
+		map<string, PROC_TAG>::iterator itm = mapProcTag.begin();
+		for (; itm != mapProcTag.end(); ++itm)
 		{
 			bFlg = false;
-			if (itr->name.compare(pname) == 0)
+			
+			if ((itm->first).compare(pname) == 0)
 			{
-				vector<PROC_CONFIG>::iterator it = itr->vProcConfig.begin();
-				for(; it != itr->vProcConfig.end(); ++it)
-				{
+				vector<PROC_TAG>::iterator it = itm->second.vProcTag.begin();
+				for (; it != itm->second.vProcTag.end(); ++it)
+				{					
 					pid_t pid;
 					if ((pid = fork()) == -1)
 					{

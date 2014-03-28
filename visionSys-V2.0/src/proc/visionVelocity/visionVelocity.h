@@ -14,8 +14,6 @@ DATE	:	2014.1.2
 class CVisionVelocity : public CBaseVision
 {	
 	DECLARE_MESSAGE_MAP
-	
-	//DECLARE_TIMER_MAP
 
 public :
 
@@ -28,14 +26,10 @@ public :
 	virtual int DeactiveImp();
 	
 	void ProcessMsg(VISION_MSG* pMsg);
-	
-	void StoreData();
 
 private :
 	
 	int InitOption();
-	
-	int InitStore();
 	
 	int ExecCmd(const char* strCmd);
 	
@@ -48,19 +42,6 @@ private :
 
 	char* m_pImu;
 	char* m_pFeedBack;
-	
-	char* m_pStereoBuf;
-	char* m_pOutStereoBuf;
-	char* m_pVoBuf;
-	char* m_pOutVoBuf;
-	
-	CQueueCtrl* m_pStereoInfoCtrl;
-	CQueueCtrl* m_pVoInfoCtrl;
-	CQueueCtrl* m_pImuCtrl;
-	
-	FILE* m_pfStereoInfo;
-	FILE* m_pfVoInfo;
-	FILE* m_pfImu;
 };
 
 #endif

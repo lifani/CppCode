@@ -76,6 +76,14 @@ CCompoentInterface* CreateInstance(const char* ppname, const char* pname) \
 	return p; \
 } \
 
+// 注册线程函数
+#define REGISTER_THREAD(x) \
+	RegisterThread(static_cast<THREAD_FUNC>(x))
+
+// 注册消息生成函数
+#define REGISTER_MSG_FUNC(x, y) \
+	RegisterMsgFunc((x), (static_cast<MSG_FUNC>(y)))
+
 class CBaseVision : public CCompoentInterface
 {
 	DECLARE_MESSAGE_MAP
@@ -98,7 +106,7 @@ public :
 	
 	virtual int DeactiveImp() = 0;
 	
-	virtual void AddConfig(vector<MSG_CONFIG>& vMsgXmlNode, vector<PROC_CONFIG>& vProcXmlNode);
+	virtual void AddMsgTag(const map<long, MSG_TAG*>& mapMsgTag, const map<string, PROC_TAG>& mapProcTag);
 	
 	virtual void AddProcInfo(const char* pname, int pid);
 	
@@ -112,7 +120,11 @@ public :
 	
 	virtual int SendMsg(VISION_MSG* pMsg);
 	
+	virtual int SendSmallMsg(long id, char* ptr, unsigned int size);
+	
 	virtual void RegisterThread(THREAD_FUNC pfn);
+	
+	virtual void RegisterMsgFunc(string name, MSG_FUNC func);
 	
 	virtual bool IsRunning();
 	
@@ -148,18 +160,21 @@ private :
 
 	void GetProcInfo();
 	
-	void GetProcInfoImp(vector<PROC_CONFIG>& vProcConfig);
+	void InitMsgFunc();
 
 public :
-
-	vector<PROC_CONFIG> m_vProcConfig;
-	vector<MSG_CONFIG> m_vMsgConfig;
+	
+	map<long, MSG_TAG*> m_mapPMsgTag;
 	vector<OPTION> m_vOption;
+	
+	PROC_TAG m_procTag;
 
 protected :
 
 	string m_pname;
 	pid_t m_pid;
+	
+	map<string, MSG_FUNC> m_mapMsgFunc;
 
 private :
 

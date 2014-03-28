@@ -8,7 +8,7 @@ class CMT
 {
 public :
 
-	static int Register(vector<MSG_CONFIG>& vMsgConfig, string& pname, int pid);
+	static int Register(const map<long, MSG_TAG*>& mapPMsgTag, string& pname, int pid);
 	
 	static int Destory();
 	

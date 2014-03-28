@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 	// 改变工作目录
 	if (-1 == chdir(strCwd.c_str()))
 	{
-		cout << "change dir error." << endl;
+		LOGE("change dir error. %s : %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 	
@@ -67,9 +67,9 @@ int main(int argc, char* argv[])
 	LOGW("%s. %s : %d\n", strlog.c_str(), __FILE__, __LINE__);
 	
 	// 替换进程内容
-	if (-1 == execl("./visionRcm", "./visionRcm", (char*)0))
+	if (-1 == execl("./visionDeamon", "./visionDeamon", "visionDeamon", (char*)0))
 	{
-		cout << "execl error." << endl;
+		LOGE("execl error. %s : %d\n", __FILE__, __LINE__);
 	}
 	
 	return 0;

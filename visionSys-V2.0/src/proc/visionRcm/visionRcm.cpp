@@ -58,7 +58,11 @@ int CVisionRcm::ActiveImp()
 		return -1;
 	}
 
-	RegisterThread(static_cast<THREAD_FUNC>(&CVisionRcm::TransData));
+	// 注册线程函数
+	REGISTER_THREAD(&CVisionRcm::TransData);
+	
+	// 注册消息生成函数
+	REGISTER_MSG_FUNC("GetDataFromFpga", &CVisionRcm::GetDataFromFpga);
 	
 	LOGW("VisionRcm actived. %s : %d\n", __FILE__, __LINE__);
 	
@@ -120,14 +124,11 @@ void CVisionRcm::TransData()
 		// 调用轮询函数
 		process_poll(&p_fd);
 		
-		// 读取数据
-		ReadData();
+		// 生成消息并发送
+		GenerateMsg();
 		
 		// 将轮询标志位置0
 		WriteFlg(t_fd);
-
-		// 发送数据
-		SendData();
 	}
 }
 
@@ -140,8 +141,8 @@ void CVisionRcm::ProcessVelocityMsg(VISION_MSG* pMsg)
 {	
 	if (NULL != pMsg)
 	{
-		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)pMsg->data.ptr;
-		
+		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)pMsg->data.buf;
+
 		m_qCtrl.push((char*)p);
 	}
 }
@@ -165,6 +166,27 @@ void CVisionRcm::SendCanData()
 	}
 }
 
+int CVisionRcm::GetImu(VISION_MSG* pMsg, int beginPos, int offset)
+{
+	return 0;
+}
+
+int CVisionRcm::GetDataFromFpga(VISION_MSG* pMsg, int beginPos, int offset)
+{
+	if (NULL != pMsg->data.ptr)
+	{
+		memcpy(pMsg->data.ptr + pMsg->data.size, m_ptr + beginPos, offset);
+		pMsg->data.size += offset;
+	}
+	
+	return 0;
+}
+
+int CVisionRcm::GetVCtrl(VISION_MSG* pMsg, int beginPos, int offset)
+{
+	return 0;
+}
+
 /************************************
 功能：	实现各种资源的初始化
 参数：	无
@@ -172,32 +194,13 @@ void CVisionRcm::SendCanData()
 ************************************/
 int CVisionRcm::Initialize()
 {
-	m_sumSize = 0;
-	
-	vector<MSG_CONFIG>::iterator itv = m_vMsgConfig.begin();
-	for (; itv != m_vMsgConfig.end(); ++itv)
-	{
-		if (itv->offset >= 0)
-		{
-			m_sumSize += itv->size;
-			
-			if (0 != itv->imu)
-			{
-				m_sumSize += sizeof(IMU_DATA);
-			}
-		}
-	}
-	
+	m_pData = new unsigned char[MSG_MEM_SIZE / 2];
 	if (NULL == m_pData)
 	{
-		m_pData = new unsigned char[m_sumSize + 1];
-		if (NULL == m_pData)
-		{
-			LOGE("malloc memory err. %s : %d\n", __FILE__, __LINE__);
-			return -1;
-		}
+		LOGE("malloc memory err. %s : %d\n", __FILE__, __LINE__);
+		return -1;
 	}
-	
+
 	// 初始化选项
 	InitOption();
 	
@@ -424,76 +427,44 @@ void CVisionRcm::WriteFlg(int fd)
 }
 
 /************************************
-功能：	根据消息配置文件读取数据
+功能：	生成消息包并发送
 参数：	无
 返回：	无
 ************************************/
-void CVisionRcm::ReadData()
-{
-	if (NULL == m_pData || NULL == m_ptr)
+void CVisionRcm::GenerateMsg()
+{	
+	vector<MSG_TAG*>::iterator itv = m_procTag.vPMsgTag.begin();
+	for (; itv != m_procTag.vPMsgTag.end(); ++itv)
 	{
-		return;
-	}
-	
-	// 获取IMU数据
-	GetImu(&m_imu);
-	
-	unsigned int pos = 0;
-	
-	vector<MSG_CONFIG>::iterator itv = m_vMsgConfig.begin();
-	for (; itv != m_vMsgConfig.end(); ++itv)
-	{
-		if (itv->offset >= 0)
-		{			
-			memcpy(m_pData + pos, m_ptr + itv->offset, itv->size);
-
-			pos += itv->size;
-			
-			if (0 != itv->imu)
-			{
-				memcpy((char*)(m_pData + pos), (char*)&m_imu, sizeof(IMU_DATA));
-				pos += sizeof(IMU_DATA);
-			}
-		}
-	}
-}
-
-/************************************
-功能：	发送数据
-参数：	无
-返回：	无
-************************************/
-void CVisionRcm::SendData()
-{
-	if (NULL == m_pData)
-	{
-		return;
-	}
-	
-	unsigned int pos = 0;
-	
-	VISION_MSG msg;
-	
-	vector<MSG_CONFIG>::iterator itv = m_vMsgConfig.begin();
-	for (; itv != m_vMsgConfig.end(); ++itv)
-	{
-		if (itv->offset >= 0)
+		unsigned char type = *(unsigned char*)(m_regPtr + 0x25 * 4);
+		if (type != (*itv)->type)
 		{
-			msg.id = itv->id;
-			msg.data.ptr = (char*)(m_pData + pos);
-			msg.data.size = itv->size;
-			
-			if (0 != itv->imu)
+			continue;
+		}
+	
+		VISION_MSG msg;
+		
+		MSG_TAG* pMsgTag = *itv;
+		
+		msg.id = pMsgTag->id;
+		msg.data.size = 0;
+		msg.data.ptr = pMsgTag->isBig ? (char*)m_pData : NULL;
+		
+		int err = 0;
+		while (NULL != pMsgTag)
+		{
+			if (-1 == (this->*(pMsgTag->pf))(&msg, pMsgTag->begin_pos, pMsgTag->off_set))
 			{
-				msg.data.size += sizeof(IMU_DATA);
+				err = -1;
+				break;
 			}
 			
-			pos += msg.data.size;
-			
-			if (0 != SendMsg(&msg))
-			{
-				LOGE("Send Msg err. msg id = %ld. %s : %d\n",  msg.id, __FILE__, __LINE__);
-			}
+			pMsgTag = pMsgTag->next;
+		}
+		
+		if (0 == err && -1 == SendMsg(&msg))
+		{
+			LOGE("send msg %ld err. %s : %d\n", msg.id, __FILE__, __LINE__);
 		}
 	}
 }
@@ -712,7 +683,7 @@ void CVisionRcm::DisableSonar()
 参数：	无
 返回：	成功 0，失败 -1
 ************************************/
-int CVisionRcm::GetImu(IMU_DATA* pImu)
+/*int CVisionRcm::GetImu(IMU_DATA* pImu)
 {
 	int len = (int)sizeof(IMU_DATA);
 	
@@ -752,5 +723,5 @@ int CVisionRcm::GetImu(IMU_DATA* pImu)
 	}
 	
 	return 0;
-}
+}*/
 

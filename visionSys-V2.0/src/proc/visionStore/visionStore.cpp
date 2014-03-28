@@ -84,9 +84,9 @@ void CVisionStore::ProcessMsg(VISION_MSG* pMsg)
 	char szBuf[256] = {0};
 	for (int i = 0; i < m_num; ++i)
 	{
-		snprintf(szBuf, 256, "%s/%06d_%d.dat", m_strPath.c_str(), m_fIndex, i);
+		snprintf(szBuf, 256, "%s/%06d_%d_0.dat", m_strPath.c_str(), m_fIndex, i);
 		
-		OutFile(szBuf, pMsg->data.ptr + i * IMG_SIZE, IMG_SIZE);
+		OutFile(szBuf, pMsg->data.ptr, IMG_SIZE * 4);
 	}
 	
 	++m_fIndex;
@@ -95,6 +95,8 @@ void CVisionStore::ProcessMsg(VISION_MSG* pMsg)
 	{
 		ResetStore();
 	}
+	
+	cout << "***** CNT = " << m_fIndex << " *****" << endl;
 }
 
 void CVisionStore::Store()

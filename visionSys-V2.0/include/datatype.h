@@ -55,6 +55,8 @@ const unsigned int HEAD_SIZE = 20;
 
 const unsigned int FRAME_LEN = 8;
 
+const unsigned int MSG_MEM_SIZE = 1024 * 1024;
+
 // 消息驱动机制
 // 和定时器
 // 涉及数据结构定义开始
@@ -72,6 +74,7 @@ typedef struct _MSG_DATA
 {
 	char* 			ptr;
 	unsigned 		size;
+	char			buf[64];
 } MSG_DATA;
 
 typedef struct _VISION_MSG
@@ -80,23 +83,36 @@ typedef struct _VISION_MSG
 	MSG_DATA		data;
 } VISION_MSG;
 
-typedef struct _PROC_CONFIG
-{
-	string 	name;
-	long   	pid;
-	long   	ppid;
-	
-	vector<struct _PROC_CONFIG> vProcConfig;
-} PROC_CONFIG;
+typedef int (CBaseVision::*MSG_FUNC)(VISION_MSG*, int, int);
 
-typedef struct _MSG_CONFIG
+typedef struct _MSG_TAG
 {
-	long	id;
-	int 	size;
-	int 	cnt;
-	int 	offset;
-	int		imu;
-} MSG_CONFIG;
+	long		id;
+	string 		data_type;
+	string		fun_name;
+	MSG_FUNC 	pf;
+	int 		begin_pos;
+	int 		off_set;
+	int			isBig;
+	int 		type; // for fpga
+	
+	_MSG_TAG* next;
+} MSG_TAG;
+
+typedef struct _PROC_TAG
+{
+	string name;
+	int    pid;
+	int    ppid;
+	
+	vector<MSG_TAG*> vPMsgTag;
+	
+	vector<_PROC_TAG> vProcTag;
+	
+	_PROC_TAG() : name(""), pid(0), ppid(0)
+	{
+	}
+} PROC_TAG;
 
 typedef void (CBaseVision::*VISION_PMSG)(VISION_MSG*);
 typedef void (CBaseVision::*VISION_PTIMER)();

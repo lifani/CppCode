@@ -15,8 +15,8 @@ public:
 	virtual int Action() = 0;
 	
 	virtual int Deactive() = 0;
-	
-	virtual void AddConfig(vector<MSG_CONFIG>& vMsgXmlNode, vector<PROC_CONFIG>& vProcXmlNode) = 0;
+
+	virtual void AddMsgTag(const map<long, MSG_TAG*>& mapMsgTag, const map<string, PROC_TAG>& mapProcTag) = 0;
 	
 	virtual void AddProcInfo(const char* pname, int pid) = 0;
 	

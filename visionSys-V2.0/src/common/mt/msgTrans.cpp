@@ -58,11 +58,6 @@ int CMsgTrans::Init(key_t key)
 ************************************/
 int CMsgTrans::ReadMsg(VISION_MSG* pMsg)
 {
-	if (DEAMON_ID == pMsg->id)
-	{
-		return 0;
-	}
-	
 	unsigned int size = sizeof(MSG_DATA);
 	
 	return msgrcv(m_msgqid, (char*)pMsg, size, pMsg->id, MSG_NOERROR | IPC_NOWAIT);
@@ -75,11 +70,12 @@ int CMsgTrans::ReadMsg(VISION_MSG* pMsg)
 ************************************/
 int CMsgTrans::WriteMsg(VISION_MSG* pMsg)
 {
-	if (DEAMON_ID == pMsg->id)
+	int err = msgsnd(m_msgqid, (char*)pMsg, sizeof(MSG_DATA), IPC_NOWAIT);
+	if (-1 == err)
 	{
-		return 0;
+		LOGE("send msg err(%d). %s : %d\n", errno, __FILE__, __LINE__);
 	}
-	
-	return msgsnd(m_msgqid, (char*)pMsg, sizeof(MSG_DATA), IPC_NOWAIT);
+		
+	return err;
 }
 

@@ -13,16 +13,16 @@ static CMsgTrans* g_pMsgTrans = NULL;
 
 /************************************
 功能：	注册
-参数：	vMsgConfig vector<MSG_CONFIG>& 消息配置信息
+参数：	const map<long, MSG_TAG*>& mapPMsgTag& 消息配置信息
 		pname string 进程名
 		pid int 进程ID
 返回：	成功 0，失败 -1
 ************************************/
-int CMT::Register(vector<MSG_CONFIG>& vMsgConfig, string& pname, int pid)
+int CMT::Register(const map<long, MSG_TAG*>& mapPMsgTag, string& pname, int pid)
 {
 	key_t key = ftok(pname.c_str(), pid);
 	
-	g_pShmTrans = CShmTrans::CreateInstance(vMsgConfig, key);
+	g_pShmTrans = CShmTrans::CreateInstance(mapPMsgTag, key);
 	g_pMsgTrans = CMsgTrans::CreateInstance(key);
 	
 	if (NULL == g_pShmTrans || NULL == g_pMsgTrans)

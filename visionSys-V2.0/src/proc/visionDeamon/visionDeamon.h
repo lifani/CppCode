@@ -24,21 +24,6 @@ public :
 	virtual int ActiveImp();
 	
 	virtual int DeactiveImp();
-	
-	void deamon();
-	
-private :
-
-	void KillAll();
-	
-	void KillProc(string& pname);
-
-private :
-
-	unsigned int m_index;
-	unsigned int m_cnt;
-	
-	SHM_DEAMON m_tDeamon;
 };
 
 #endif

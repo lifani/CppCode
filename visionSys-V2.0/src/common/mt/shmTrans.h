@@ -15,53 +15,61 @@ DATE	:	2014.1.2
 class SHM_HEAD
 {
 public :
-	unsigned int m_initialized;
-	unsigned int m_size;
-	unsigned short m_cnt;
+
 	unsigned short m_fetch;
 	unsigned short m_store;
-	unsigned short res;
 	
-	SHM_HEAD() : m_initialized(0), m_size(0), m_cnt(0), m_fetch(0), m_store(0), res(0)
+	SHM_HEAD() : m_fetch(0), m_store(0)
 	{
 	}
-	
 };
 
 #pragma pack()
+
+#define read_lock(fd, offset, len) \
+	lock_reg((fd), F_SETLK, F_RDLCK, (offset), SEEK_SET, (len))
+#define readw_lock(fd, offset, len) \
+	lock_reg((fd), F_SETLKW, F_RDLCK, (offset), SEEK_SET, (len))
+#define write_lock(fd, offset, len) \
+	lock_reg((fd), F_SETLK, F_WRLCK, (offset), SEEK_SET, (len))
+#define writew_lock(fd, offset, len) \
+	lock_reg((fd), F_SETLKW, F_WRLCK, (offset), SEEK_SET, (len))
+#define un_lock(fd, offset, len) \
+	lock_reg((fd), F_SETLK, F_UNLCK, (offset), SEEK_SET, (len))
 
 class CShmCtrl
 {
 public :
 
-	CShmCtrl(MSG_CONFIG& tMsgConfig);
+	CShmCtrl(int fd);
 	
 	~CShmCtrl();
 	
-	void Init(char*& ptr);
+	void Init(char*& ptr, off_t offset);
 	
 	int push(VISION_MSG* pMsg);
 	
 	int pop(VISION_MSG* pMsg);
 	
 private :
-	MSG_CONFIG m_tMsgConfig;
-	
-	unsigned int m_uCnt;
 
-	SHM_HEAD * m_pHead;
+	int lock_reg(int fd, int cmd, int type, off_t offset, int whence, off_t len);
+	
+private :
+	
+	const int LCK_SIZE;
+	int m_fd;
+	off_t m_offset;
+	
+	SHM_HEAD* m_pHead;
 	char* m_pData;
-	
-	long m_id;
-	
-	static char* m_lastPtr;
 };
 
 class CShmTrans : public CTransInterface
 {
 public :
 
-	static CShmTrans* CreateInstance(vector<MSG_CONFIG>& vMsgConfig, key_t key);
+	static CShmTrans* CreateInstance(const map<long, MSG_TAG*>& mapPMsgTag, key_t key);
 
 	virtual int ReadMsg(VISION_MSG* pMsg);
 	
@@ -75,16 +83,13 @@ protected :
 	
 private :
 
-	int Init(vector<MSG_CONFIG>& vMsgConfig, key_t key);
-	
-	int ReadDeamonMsg(VISION_MSG* pMsg);
-	
-	int WriteDeamonMsg(VISION_MSG* pMsg);
+	int Init(const map<long, MSG_TAG*>& mapPMsgTag, key_t key);
 
 private :
 
 	static CShmTrans* m_pShmTrans;
 	
+	int 	m_fd;
 	int 	m_shmid;
 	char* 	m_pShmData;
 	char* 	m_pOutData;

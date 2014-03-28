@@ -7,26 +7,57 @@
 #include <tinyxml/tinyxml.h>
 #include <tinyxml/tinystr.h>
 
+class CXml;
+
+typedef int (CXml::*PASER_TAG_HANDLE)(TiXmlElement*);
+
 class CXml
 {
 public :
 
-	CXml() {};
+	CXml();
 	
-	~CXml() {};
+	~CXml();
 	
-	bool ReadXml(const string& strPath, vector<PROC_CONFIG>& vProcXmlNode, vector<MSG_CONFIG>& vMsgXmlNode);
+	bool LoadXml(const string& strPath);
 	
-	bool ReadOption(const string& strPath, vector<OPTION>& vOption);
+	void GetProcTag(map<string, PROC_TAG>& mapProcTag);
+	
+	void GetMsgTag(map<long, MSG_TAG*>& mapMsgTag);
+	
+	void GetOption(vector<OPTION>& vOption);
+	
+private :
+	
+	int PaserDataTagNode(TiXmlElement* pElement);
+	
+	int PaserMsgTagNode(TiXmlElement* pElement);
+	
+	int PaserProcTagNode(TiXmlElement* pElement);
+	
+	int PaserOptionTagNode(TiXmlElement* pElement);
+	
+	int GetIntAttribute(TiXmlElement* pElement, const string& key);
+	
+	int GetStrAttribute(TiXmlElement* pElement, const string& key, string& strAttribute);
+	
+	int GetFunc(MSG_TAG* pMsgTag);
+	
+	int AddTail(MSG_TAG* pHead, MSG_TAG* pMsgTag);
+	
+	int AddMsgTag(TiXmlElement* pElement, PROC_TAG& procTag);
+	
+	void AddProcTagConfig(TiXmlElement* pElement, PROC_TAG& procTag);
 	
 private :
 
-	bool PaserProcTagNode(TiXmlElement* pNode, PROC_CONFIG& xmlNode);
-	
-	bool PaserMsgTagNode(TiXmlElement* pNode, vector<MSG_CONFIG>& vMsgXmlNode);
-	
-	bool PaserOptionTagNode(TiXmlElement* pNode, vector<OPTION>& vOption);
+	map<string, PASER_TAG_HANDLE> m_mapHandle;
 
+	map<string, string> m_mapData;
+	map<long, MSG_TAG*> m_mapMsg;
+	map<string, PROC_TAG> m_mapProc;
+	
+	vector<OPTION> m_vOption;
 };
 
 #endif

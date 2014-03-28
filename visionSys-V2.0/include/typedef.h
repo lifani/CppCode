@@ -29,5 +29,6 @@
 using namespace std;
 
 #define CONFIG_XML "./config.xml"
+#define RECORD_LOCKING "./lock"
 
 #endif

@@ -6,9 +6,8 @@ DATE	:	2014.1.2
 #include "shmTrans.h"
 
 CShmTrans* CShmTrans::m_pShmTrans = NULL;
-char* CShmCtrl::m_lastPtr = NULL;
 
-CShmCtrl::CShmCtrl(MSG_CONFIG& tMsgConfig) : m_tMsgConfig(tMsgConfig), m_uCnt(0), m_pHead(NULL), m_pData(NULL), m_id(0)
+CShmCtrl::CShmCtrl(int fd) : LCK_SIZE(MSG_MEM_SIZE / 2), m_fd(fd), m_pHead(NULL), m_pData(NULL)
 {
 }
 
@@ -21,42 +20,20 @@ CShmCtrl::~CShmCtrl()
 参数：	ptr char*& 存储地址
 返回：	无
 ************************************/
-void CShmCtrl::Init(char*& ptr)
+void CShmCtrl::Init(char*& ptr, off_t offset)
 {
 	if (NULL == ptr)
 	{
 		return;
 	}
 	
-	unsigned int size = m_tMsgConfig.size * m_tMsgConfig.cnt;
-	if (size > 0)
-	{
-		m_pHead = (SHM_HEAD*)ptr;
-		
-		if (m_pHead->m_initialized == 0)
-		{
-			m_pHead->m_initialized = 1;
-			
-			m_pHead->m_size = m_tMsgConfig.size;
-			if (1 == m_tMsgConfig.imu)
-			{
-				m_pHead->m_size += sizeof(IMU_DATA);
-			}
-			
-			m_pHead->m_cnt = 0;
-			m_pHead->m_fetch = 0;
-			m_pHead->m_store = 0;
-		}
-
-		m_pData = ptr + sizeof(SHM_HEAD);
-		m_uCnt = m_tMsgConfig.cnt;
-		m_id = m_tMsgConfig.id;
-		
-		size = m_pHead->m_size * m_tMsgConfig.cnt + sizeof(SHM_HEAD);
-		ptr += size;
-		
-		m_lastPtr = ptr;
-	}
+	m_offset = offset;
+	
+	m_pHead = (SHM_HEAD*)ptr;
+	m_pData = ptr + sizeof(SHM_HEAD);
+	
+	m_pHead->m_fetch = 0;
+	m_pHead->m_store = 0;
 }
 
 /************************************
@@ -71,23 +48,19 @@ int CShmCtrl::push(VISION_MSG* pMsg)
 		return -1;
 	}
 	
-	if (m_pHead->m_cnt == m_uCnt)
+	// 加锁
+	if (writew_lock(m_fd, m_offset, MSG_MEM_SIZE) == -1)
 	{
 		return -1;
 	}
 	
-	unsigned int len = pMsg->data.size > m_pHead->m_size ? m_pHead->m_size : pMsg->data.size;
+	memcpy(m_pData + m_pHead->m_store * LCK_SIZE, pMsg->data.ptr, pMsg->data.size);
 	
-	char* p = m_pData + m_pHead->m_store * m_pHead->m_size;
-	memcpy(p, pMsg->data.ptr, len);
+	m_pHead->m_fetch = m_pHead->m_store;
+	m_pHead->m_store = (m_pHead->m_store + 1) % 2;
 	
-	++m_pHead->m_store;
-	if (m_pHead->m_store == m_uCnt)
-	{
-		m_pHead->m_store = 0;
-	}
-	
-	++m_pHead->m_cnt;
+	// 解锁
+	un_lock(m_fd, m_offset, MSG_MEM_SIZE);
 	
 	return 0;
 }
@@ -103,40 +76,43 @@ int CShmCtrl::pop(VISION_MSG* pMsg)
 	{
 		return -1;
 	}
-
-	if (m_pHead->m_cnt == 0)
+	
+	if (writew_lock(m_fd, m_offset, MSG_MEM_SIZE) == -1)
 	{
 		return -1;
 	}
 	
-	unsigned int len = pMsg->data.size > m_pHead->m_size ? m_pHead->m_size : pMsg->data.size;
+	memcpy(pMsg->data.ptr, m_pData + m_pHead->m_fetch * LCK_SIZE, pMsg->data.size);
 	
-	char* p = m_pData + m_pHead->m_fetch * m_pHead->m_size;
-	memcpy(pMsg->data.ptr, p, len);
-	
-	++m_pHead->m_fetch;
-	if (m_pHead->m_fetch == m_uCnt)
-	{
-		m_pHead->m_fetch = 0;
-	}
-	
-	--m_pHead->m_cnt;
+	un_lock(m_fd, m_offset, MSG_MEM_SIZE);	
 
 	return 0;
 }
 
+int CShmCtrl::lock_reg(int fd, int cmd, int type, off_t offset, int whence, off_t len)
+{
+	struct flock lock;
+	
+	lock.l_type = type;
+	lock.l_start = offset;
+	lock.l_whence = whence;
+	lock.l_len = len;
+	
+	return fcntl(fd, cmd, &lock);
+}
+
 /************************************
 功能：	创建CShmTrans实例
-参数：	vMsgConfig vector<MSG_CONFIG>& 消息配置信息
+参数：	const map<long, MSG_TAG*>& 消息配置信息
 		key key_t IPC key值
 返回：	成功 0，失败 -1
 ************************************/
-CShmTrans* CShmTrans::CreateInstance(vector<MSG_CONFIG>& vMsgConfig, key_t key)
+CShmTrans* CShmTrans::CreateInstance(const map<long, MSG_TAG*>& mapPMsgTag, key_t key)
 {
 	if (NULL == m_pShmTrans)
 	{
 		m_pShmTrans = new CShmTrans;
-		if (NULL != m_pShmTrans && m_pShmTrans->Init(vMsgConfig, key) == -1)
+		if (NULL != m_pShmTrans && m_pShmTrans->Init(mapPMsgTag, key) == -1)
 		{
 			delete m_pShmTrans;
 			m_pShmTrans = NULL;
@@ -158,6 +134,16 @@ CShmTrans::~CShmTrans()
 		m_pOutData = NULL;
 	}
 	
+	map<long, CShmCtrl*>::iterator itm = m_mapShmCtrl.begin();
+	for (; itm != m_mapShmCtrl.end(); ++itm)
+	{
+		if (NULL != itm->second)
+		{
+			delete itm->second;
+			itm->second = NULL;
+		}
+	}
+	
 	shmdt(m_pShmData);
 		
 	struct shmid_ds ds;
@@ -174,71 +160,68 @@ CShmTrans::~CShmTrans()
 
 /************************************
 功能：	初始化
-参数：	vMsgConfig vector<MSG_CONFIG>& 消息配置信息
+参数：	const map<string, PROC_TAG>& 消息配置信息
 		key key_t IPC key值
 返回：	成功 0，失败 -1
 ************************************/
-int CShmTrans::Init(vector<MSG_CONFIG>& vMsgConfig, key_t key)
+int CShmTrans::Init(const map<long, MSG_TAG*>& mapPMsgTag, key_t key)
 {
+	m_fd = open(RECORD_LOCKING, O_CREAT | O_TRUNC | O_RDWR, 0666);
+	if (-1 == m_fd)
+	{
+		LOGE("open locking file err(%d). %s : %d\n", errno, __FILE__, __LINE__);
+		return -1;
+	}
+	
 	unsigned int sum_size = 0;
-	unsigned int max_size = 0;
-	unsigned int imu_size = 0;
 	
-	// 消息暗道
-	sum_size += sizeof(SHM_DEAMON);
-	
-	if (m_Sem.Init(key) == -1)
+	// 遍历消息列表
+	map<long, MSG_TAG*>::const_iterator itm = mapPMsgTag.begin();
+	for (; itm != mapPMsgTag.end(); ++itm)
 	{
-		return -1;
-	}
-	
-	vector<MSG_CONFIG>::iterator itv = vMsgConfig.begin();
-	for (; itv != vMsgConfig.end(); ++itv)
-	{
-		CShmCtrl* p = new CShmCtrl(*itv);
-		if (NULL == p)
+		if (NULL != itm->second && itm->second->isBig)
 		{
-			return -1;
+			sum_size += MSG_MEM_SIZE;
+			
+			m_mapShmCtrl[itm->first] = new CShmCtrl(m_fd);
+			if (NULL == m_mapShmCtrl[itm->first])
+			{
+				LOGE("malloc mem err(%d). %s : %d\n", errno, __FILE__, __LINE__);
+				return -1;
+			}
 		}
-		
-		m_mapShmCtrl[itv->id] = p;
-		
-		imu_size = itv->imu == 0 ? 0 : sizeof(IMU_DATA);
-		
-		unsigned int size = (itv->size + imu_size) * itv->cnt + sizeof(SHM_HEAD);
-		if (itv->size + imu_size > max_size)
-		{
-			max_size = itv->size + imu_size;
-		}
-		
-		sum_size += size;
 	}
 	
-	m_pOutData = new char[max_size + 1];
-	if (NULL == m_pOutData)
-	{
-		return -1;
-	}
-	
-	m_pOutData[max_size] = '\0';
-	
+	// 创建共享内存
 	if ((m_shmid = shmget(key, sum_size, IPC_CREAT | SHM_R | SHM_W)) == -1)
 	{
+		LOGE("get shm id err(%d). %s : %d\n", errno, __FILE__, __LINE__);
 		return -1;
 	}
 	
 	if ((m_pShmData = (char*)shmat(m_shmid, 0, 0)) == (void*)-1)
 	{
+		LOGE("mat shm err(%d). %s : %d\n", errno, __FILE__, __LINE__);
 		m_pShmData = NULL;
 		return -1;
 	}
 	
-	char* p = m_pShmData + sizeof(SHM_DEAMON);
+	// 初始化管理器
+	char* p = m_pShmData;
 	
-	map<long, CShmCtrl*>::iterator itm = m_mapShmCtrl.begin();
-	for (; itm != m_mapShmCtrl.end(); ++itm)
+	map<long, CShmCtrl*>::iterator it_ctrl = m_mapShmCtrl.begin();
+	for (; it_ctrl != m_mapShmCtrl.end(); ++it_ctrl)
 	{
-		itm->second->Init(p);
+		it_ctrl->second->Init(p, p - m_pShmData);
+		
+		p += MSG_MEM_SIZE;
+	}
+	
+	m_pOutData = new char[MSG_MEM_SIZE];
+	if (NULL == m_pOutData)
+	{
+		LOGE("malloc mem err(%d). %s : %d\n", errno, __FILE__, __LINE__);
+		return -1;
 	}
 	
 	return 0;
@@ -256,24 +239,16 @@ int CShmTrans::ReadMsg(VISION_MSG* pMsg)
 		return 0;
 	}
 	
-	// 消息暗道
-	if (DEAMON_ID == pMsg->id)
-	{
-		return ReadDeamonMsg(pMsg);
-	}
-	
 	CShmCtrl* pShmCtrl = m_mapShmCtrl[pMsg->id];
 	if (NULL != pShmCtrl)
 	{
 		pMsg->data.ptr = m_pOutData;
-		
-		m_Sem.P();
+
 		if (pShmCtrl->pop(pMsg) == -1)
 		{
-			m_Sem.V();
+			LOGE("read msg %ld content err(%d). %s : %d\n", pMsg->id, errno, __FILE__, __LINE__);
 			return -1;
 		}
-		m_Sem.V();
 	}
 	else
 	{
@@ -294,78 +269,20 @@ int CShmTrans::WriteMsg(VISION_MSG* pMsg)
 	{
 		return 0;
 	}
-	
-	// 消息暗道
-	if (DEAMON_ID == pMsg->id)
-	{
-		return WriteDeamonMsg(pMsg);
-	}
-	
+
 	CShmCtrl* pShmCtrl = m_mapShmCtrl[pMsg->id];
 	if (NULL != pShmCtrl)
 	{
-		m_Sem.P();
 		if (pShmCtrl->push(pMsg) == -1)
 		{
-			m_Sem.V();
+			LOGE("write msg %ld content err(%d). %s : %d\n", pMsg->id, errno, __FILE__, __LINE__);
 			return -1;
 		}
-		m_Sem.V();
 	}
 	else
 	{
 		return -1;
 	}
-	
-	return 0;
-}
-
-/************************************
-功能：	读取暗道信息
-参数：	*pMsg VISION_MSG 消息指针, 不能为空
-返回：	成功 0，失败 -1
-************************************/
-int CShmTrans::ReadDeamonMsg(VISION_MSG* pMsg)
-{
-	if (NULL == pMsg->data.ptr || 0 == pMsg->data.size)
-	{
-		return 0;
-	}
-	
-	int len = sizeof(SHM_DEAMON) > pMsg->data.size ? pMsg->data.size : sizeof(SHM_DEAMON);
-	
-	m_Sem.P();
-	
-	memcpy(pMsg->data.ptr, m_pShmData, len);
-	
-	pMsg->data.size = len;
-	
-	m_Sem.V();
-
-	return 0;
-}
-
-/************************************
-功能：	写暗道信息
-参数：	*pMsg VISION_MSG 消息指针, 不能为空
-返回：	成功 0，失败 -1
-************************************/
-int CShmTrans::WriteDeamonMsg(VISION_MSG* pMsg)
-{
-	if (NULL == pMsg->data.ptr || 0 == pMsg->data.size)
-	{
-		return 0;
-	}
-	
-	int len = sizeof(SHM_DEAMON) > pMsg->data.size ? pMsg->data.size : sizeof(SHM_DEAMON);
-	
-	m_Sem.P();
-	
-	memcpy(m_pShmData, pMsg->data.ptr, len);
-	
-	pMsg->data.size = len;
-	
-	m_Sem.V();
 	
 	return 0;
 }

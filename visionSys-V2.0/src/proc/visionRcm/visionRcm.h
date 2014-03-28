@@ -33,11 +33,15 @@ public :
 	
 	void TransData();
 	
-	void StoreData();
-	
 	void ProcessVelocityMsg(VISION_MSG* pMsg);
 	
 	void SendCanData();
+	
+	int GetImu(VISION_MSG* pMsg, int beginPos, int offset);
+	
+	int GetDataFromFpga(VISION_MSG* pMsg, int beginPos, int offset);
+	
+	int GetVCtrl(VISION_MSG* pMsg, int beginPos, int offset);
 	
 private :
 
@@ -55,9 +59,7 @@ private :
 	
 	void WriteFlg(int fd);
 	
-	void ReadData();
-	
-	void SendData();
+	void GenerateMsg();
 	
 	int Preprocess4Fpga();
 	
@@ -77,7 +79,7 @@ private :
 	
 	void DisableSonar();
 	
-	int GetImu(IMU_DATA* pImu);
+	//int GetImu(IMU_DATA* pImu);
 	
 private :
 
@@ -105,6 +107,9 @@ private :
 	IMU_DATA m_imu;
 	
 	bool m_work;
+	
+	struct timeval start_time;
+    struct timeval end_time;
 };
 
 #endif
