@@ -14,6 +14,8 @@ DATE	:	2014.1.2
 class CVisionVelocity : public CBaseVision
 {	
 	DECLARE_MESSAGE_MAP
+	
+	DECLARE_TIMER_MAP
 
 public :
 

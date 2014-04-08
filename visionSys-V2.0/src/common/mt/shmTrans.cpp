@@ -34,6 +34,7 @@ void CShmCtrl::Init(char*& ptr, off_t offset)
 	
 	m_pHead->m_fetch = 0;
 	m_pHead->m_store = 0;
+	m_pHead->m_total = 0;
 }
 
 /************************************
@@ -54,10 +55,16 @@ int CShmCtrl::push(VISION_MSG* pMsg)
 		return -1;
 	}
 	
+	if (m_pHead->m_total == MAX_MSG)
+	{
+		return -1;
+	}
+	
 	memcpy(m_pData + m_pHead->m_store * LCK_SIZE, pMsg->data.ptr, pMsg->data.size);
 	
 	m_pHead->m_fetch = m_pHead->m_store;
 	m_pHead->m_store = (m_pHead->m_store + 1) % 2;
+	m_pHead->m_total++;
 	
 	// ½âËø
 	un_lock(m_fd, m_offset, MSG_MEM_SIZE);
@@ -82,7 +89,14 @@ int CShmCtrl::pop(VISION_MSG* pMsg)
 		return -1;
 	}
 	
+	if (m_pHead->m_total == 0)
+	{
+		return -1;
+	}
+	
 	memcpy(pMsg->data.ptr, m_pData + m_pHead->m_fetch * LCK_SIZE, pMsg->data.size);
+	
+	m_pHead->m_total--;
 	
 	un_lock(m_fd, m_offset, MSG_MEM_SIZE);	
 

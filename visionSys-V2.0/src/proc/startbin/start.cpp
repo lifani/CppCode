@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 	LOGW("%s. %s : %d\n", strlog.c_str(), __FILE__, __LINE__);
 	
 	// Ìæ»»½ø³ÌÄÚÈÝ
-	if (-1 == execl("./visionDeamon", "./visionDeamon", "visionDeamon", (char*)0))
+	if (-1 == execl("./visionDaemon", "./visionDaemon", "visionDaemon", (char*)0))
 	{
 		LOGE("execl error. %s : %d\n", __FILE__, __LINE__);
 	}

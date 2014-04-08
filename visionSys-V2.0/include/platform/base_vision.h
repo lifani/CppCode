@@ -146,6 +146,8 @@ public :
 	
 	virtual void KillTimer();
 	
+	virtual void SendHeartMsg();
+	
 	static void* StartThread(void* arg);
 	
 	static void* StartReqTimer(void* arg);
@@ -175,11 +177,11 @@ protected :
 	pid_t m_pid;
 	
 	map<string, MSG_FUNC> m_mapMsgFunc;
+	map<int, PROC_INFO*> m_mapProcInfo;
 
 private :
 
 	vector<THREAD_ENTRY> m_vThreadEntry;
-	vector<PROC_INFO> m_vProcInfo;
 	vector<string> m_vLog;
 	vector<VISION_TIMER*> m_vTimer;
 	

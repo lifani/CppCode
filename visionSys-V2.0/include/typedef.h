@@ -14,6 +14,7 @@
 #include <sys/sem.h>
 #include <sys/msg.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
 

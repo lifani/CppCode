@@ -18,13 +18,16 @@ public :
 
 	unsigned short m_fetch;
 	unsigned short m_store;
+	unsigned short m_total;
 	
-	SHM_HEAD() : m_fetch(0), m_store(0)
+	SHM_HEAD() : m_fetch(0), m_store(0), m_total
 	{
 	}
 };
 
 #pragma pack()
+
+#define MAX_MSG 10
 
 #define read_lock(fd, offset, len) \
 	lock_reg((fd), F_SETLK, F_RDLCK, (offset), SEEK_SET, (len))

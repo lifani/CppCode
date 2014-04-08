@@ -8,6 +8,8 @@ DATE	:	2014.1.2
 #include <sys/wait.h>
 #include "monitor.h"
 
+#define LOG_TAG "BASE_VISION"
+
 const VISION_MSGMAP* CBaseVision::GetMessageMap()
 {
 	return GetThisMessageMap();
@@ -90,6 +92,9 @@ int CBaseVision::Active()
 	// 注册线程函数
 	RegisterThread(&CBaseVision::HandleMessage);
 	
+	// Set Timer
+	SetTimer();
+	
 	// 调用子类激活函数
 	
 	if (-1 == ActiveImp())
@@ -120,9 +125,6 @@ int CBaseVision::Action()
 		}
 	}
 	
-	// Set Timer
-	SetTimer();
-	
 	return 0;
 }
 
@@ -145,18 +147,24 @@ int CBaseVision::Deactive()
 		return -1;
 	}
 	
-	// Deactive son proc
-	vector<PROC_INFO>::iterator itv = m_vProcInfo.begin();
-	for (; itv != m_vProcInfo.end(); ++itv)
+	// 去激活子进程
+	map<int, PROC_INFO*>::iterator itm = m_mapProcInfo.begin();
+	for (; itm != m_mapProcInfo.end(); ++itm)
 	{
 		char szBuf[256] = {0};
-		sprintf(szBuf, "kill -2 %d", itv->pid);
+		sprintf(szBuf, "kill -2 %d", itm->first);
 		
 		FILE* pf = popen(szBuf, "r");
 		if (NULL != pf)
 		{
 			pclose(pf);
 			pf = NULL;
+		}
+		
+		if (NULL != itm->second)
+		{
+			delete itm->second;
+			itm->second = NULL;
 		}
 	}
 	
@@ -198,11 +206,13 @@ void CBaseVision::AddMsgTag(const map<long, MSG_TAG*>& mapMsgTag, const map<stri
 // 子进程信息
 void CBaseVision::AddProcInfo(const char* pname, int pid)
 {
-	PROC_INFO tProcInfo;
-	tProcInfo.pname = pname;
-	tProcInfo.pid = pid;
+	PROC_INFO* pProcInfo = new PROC_INFO;
 	
-	m_vProcInfo.push_back(tProcInfo);
+	pProcInfo->pname = pname;
+	pProcInfo->pid = pid;
+	pProcInfo->times = 0;
+	
+	m_mapProcInfo[pid] = pProcInfo;
 }
 
 // 选项信息
@@ -348,6 +358,7 @@ void* CBaseVision::StartResTimer(void* arg)
 	if (NULL != arg)
 	{
 		VISION_TIMER* pTimer = (VISION_TIMER*)arg;
+		
 		(pTimer->pBaseVision->ResTimer)(pTimer);
 	}
 	
@@ -400,9 +411,15 @@ void CBaseVision::ResTimer(VISION_TIMER* pTimer)
 	int signo = 0;
 	
 	sigset_t mask;
+	sigset_t oldmask;
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGQUIT);
 	sigaddset(&mask, pTimer->signo);
+	
+	if ((err = pthread_sigmask(SIG_BLOCK, &mask, &oldmask)) != 0)
+	{
+		cout << "errno err = " << err << endl;
+	}
 	
 	while (IsTimerRunning())
 	{
@@ -470,7 +487,7 @@ void CBaseVision::SetTimer()
 			
 			m_vTimer.push_back(pTimer);
 		}
-	}
+	} 
 }
 
 /************************************
@@ -494,9 +511,29 @@ void CBaseVision::KillTimer()
 	m_vTimer.clear();
 }
 
+/************************************
+功能：	发送心跳消息
+参数：	无 
+返回：	无
+************************************/
+void CBaseVision::SendHeartMsg()
+{
+	VISION_MSG msg;
+	
+	msg.id = HEART_BIT;
+	msg.data.ptr = NULL;
+	msg.data.size = m_pid;
+	
+	if (-1 == CMT::SendMsg(&msg))
+	{
+		LOGE("proc %d send msg err.", m_pid);
+	}
+}
+
 void CBaseVision::GetProcInfo()
 {
-	m_pid = m_procTag.pid;
+	//m_pid = m_procTag.pid;
+	m_pid = getpid();
 	m_ppid = m_procTag.ppid;
 	
 	char szPath[256] = {0};
@@ -515,7 +552,7 @@ void CBaseVision::InitMsgFunc()
 		while (NULL != pMsgTag)
 		{
 			pMsgTag->pf = m_mapMsgFunc[pMsgTag->fun_name];
-			
+				
 			pMsgTag = pMsgTag->next;
 		}
 	}

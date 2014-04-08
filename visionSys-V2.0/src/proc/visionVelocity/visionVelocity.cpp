@@ -12,6 +12,10 @@ BEGAIN_MESSAGE_MAP(CVisionVelocity, CBaseVision)
 	ON_COMMAND(VELOCITY_ID, &CVisionVelocity::ProcessMsg)
 END_MESSAGE_MAP()
 
+BEGAIN_TIMER_MAP(CVisionVelocity, CBaseVision)
+	ON_TIMER(200000, &CBaseVision::SendHeartMsg)
+END_TIMER_MAP()
+
 DEFINE_CREATE_INSTANCE(CVisionVelocity)
 
 CVisionVelocity::CVisionVelocity(const char* ppname, const char* pname)
@@ -81,8 +85,12 @@ void CVisionVelocity::ProcessMsg(VISION_MSG* pMsg)
 {
 	if (NULL != pMsg)
 	{
-		unsigned int cnt = *(unsigned int*)pMsg->data.ptr;
-		cout << "#### recv 101 ####" << cnt << endl;
+		unsigned int cnt0 = *(unsigned int*)(pMsg->data.ptr + 0);
+		unsigned int cnt1 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE);
+		unsigned int cnt2 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE * 2);
+		unsigned int cnt3 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE * 3);
+		
+		cout << "***" << cnt0 << " " << cnt1 << " " << cnt2 << " " << cnt3 << "***" <<  endl;
 		/*m_pImu = (char*)(pMsg->data.ptr + 8 * MAX_CLOUD_SIZE);
 		
 		// 测速算法接口

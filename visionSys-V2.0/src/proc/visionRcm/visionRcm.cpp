@@ -14,6 +14,7 @@ BEGAIN_MESSAGE_MAP(CVisionRcm, CBaseVision)
 END_MESSAGE_MAP()
 
 BEGAIN_TIMER_MAP(CVisionRcm, CBaseVision)
+	ON_TIMER(200000, &CBaseVision::SendHeartMsg)
 	ON_TIMER(100000, &CVisionRcm::SendCanData)
 END_TIMER_MAP()
 
@@ -105,6 +106,12 @@ int CVisionRcm::DeactiveImp()
 	LOGW("VisionRcm deactived. %s : %d\n", __FILE__, __LINE__);
 	
 	return 0;
+}
+
+void CVisionRcm::SendHeart()
+{
+	cout << "********" << endl;
+	//CBaseVision::SendHeartMsg();
 }
 
 /************************************

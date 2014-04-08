@@ -131,6 +131,7 @@ int CXml::PaserMsgTagNode(TiXmlElement* pElement)
 		pMsgTag->off_set = GetIntAttribute(pChild, "offset");
 		pMsgTag->isBig = GetIntAttribute(pChild, "isBig");
 		pMsgTag->type = GetIntAttribute(pChild, "type");
+		pMsgTag->next = NULL;
 		
 		GetStrAttribute(pChild, "data", pMsgTag->data_type);
 		

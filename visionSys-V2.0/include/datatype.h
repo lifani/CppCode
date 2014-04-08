@@ -10,8 +10,8 @@
 #define VELOCITY_PATH		"/data/v"
 #define RECTIFIED_PATH		"/data/r"
 
-#define CAN_ID_NORMAL		0x108
-#define CAN_ID_ATTI			0x090
+#define CAN_ID_NORMAL		0x109
+#define CAN_ID_ATTI			0x092
 #define CAN_ID_MC			0x388
 
 #define CMD_CODE_NORMAL		0x1000
@@ -22,6 +22,7 @@
 
 #define SOFT_VERSION		"vl300-v2.0-T001"
 
+#define HEART_BIT			100
 #define VELOCITY_ID			101
 #define BM_ID				102
 #define VELOCITY_BACK		103
@@ -56,6 +57,8 @@ const unsigned int HEAD_SIZE = 20;
 const unsigned int FRAME_LEN = 8;
 
 const unsigned int MSG_MEM_SIZE = 1024 * 1024;
+
+const unsigned int MAX_UNRECV_TIMES = 3;
 
 // 消息驱动机制
 // 和定时器
@@ -167,8 +170,9 @@ typedef struct _SHM_DEAMON
 
 typedef struct _PROC_INFO
 {
-	string pname;
-	int  pid;
+	string 		pname;
+	int   		pid;
+	unsigned	times;
 } PROC_INFO;
 
 // pthread
