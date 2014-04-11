@@ -50,7 +50,7 @@ public :
 
 	static int FD(ENUM_HF_TYPE type, int op = 0);
 	
-	static int Initialize();
+	static int Initialize(bool flg = true);
 	
 	static void GetContent(int fd, char* ptr, int* len);
 	
@@ -65,6 +65,8 @@ private :
 	static map<int, CAbstractPacket*> g_mapFdPacket;
 	static CTask g_ArrayTask[10];
 	static struct pollfd g_ArrayPollFd[5];
+	
+	static bool m_flg;
 };
 
 #endif

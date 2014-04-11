@@ -4,7 +4,7 @@ OBJECTS = visionDaemon.o
 
 CFLAGS = -g -rdynamic -Wall -I../../../include -I../../../third
 
-LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output  -lplatform -lvo -lmt -llog -lxml -lpthread -lrt
+LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -L../../../third/can/lib -lplatform -lvo -lmt -llog -lcan -lsbus -lsocketcan -lxml -lpthread -lrt
 
 CXX = arm-linux-g++ 
 

@@ -56,6 +56,10 @@ int CVisionRcm::ActiveImp()
 	if (0 != Initialize())
 	{
 		LOGE("Initialize fail. %s : %d\n", __FILE__, __LINE__);
+		
+		// 设置状态码
+		SetStatusCode(ERR_PROC_UNINTIED);
+		
 		return -1;
 	}
 
@@ -64,6 +68,10 @@ int CVisionRcm::ActiveImp()
 	
 	// 注册消息生成函数
 	REGISTER_MSG_FUNC("GetDataFromFpga", &CVisionRcm::GetDataFromFpga);
+	REGISTER_MSG_FUNC("GetImu", &CVisionRcm::GetImu);
+	
+	// 设置状态码
+	SetStatusCode(ERR_INTIALIZED);
 	
 	LOGW("VisionRcm actived. %s : %d\n", __FILE__, __LINE__);
 	
@@ -108,12 +116,6 @@ int CVisionRcm::DeactiveImp()
 	return 0;
 }
 
-void CVisionRcm::SendHeart()
-{
-	cout << "********" << endl;
-	//CBaseVision::SendHeartMsg();
-}
-
 /************************************
 功能：	主线程，由数据驱动。完成数据读取、传递。
 参数：	无
@@ -134,6 +136,9 @@ void CVisionRcm::TransData()
 		// 生成消息并发送
 		GenerateMsg();
 		
+		// 算法任务
+		RunAlgTask();
+		
 		// 将轮询标志位置0
 		WriteFlg(t_fd);
 	}
@@ -148,7 +153,7 @@ void CVisionRcm::ProcessVelocityMsg(VISION_MSG* pMsg)
 {	
 	if (NULL != pMsg)
 	{
-		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)pMsg->data.buf;
+		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)pMsg->data.y.buf;
 
 		m_qCtrl.push((char*)p);
 	}
@@ -175,6 +180,15 @@ void CVisionRcm::SendCanData()
 
 int CVisionRcm::GetImu(VISION_MSG* pMsg, int beginPos, int offset)
 {
+	if (NULL != pMsg->data.ptr)
+	{
+		IMU_DATA* pImu = (IMU_DATA*)(pMsg->data.ptr + pMsg->data.x.size);
+		
+		*pImu = m_imu;
+		
+		pMsg->data.x.size += sizeof(IMU_DATA);
+	}
+	
 	return 0;
 }
 
@@ -182,8 +196,8 @@ int CVisionRcm::GetDataFromFpga(VISION_MSG* pMsg, int beginPos, int offset)
 {
 	if (NULL != pMsg->data.ptr)
 	{
-		memcpy(pMsg->data.ptr + pMsg->data.size, m_ptr + beginPos, offset);
-		pMsg->data.size += offset;
+		memcpy(pMsg->data.ptr + pMsg->data.x.size, m_ptr + beginPos, offset);
+		pMsg->data.x.size += offset;
 	}
 	
 	return 0;
@@ -226,12 +240,12 @@ int CVisionRcm::Initialize()
 		return -1;
 	}
 	
-	m_subs = CHF::FD(HF_COM);
+	/*m_subs = CHF::FD(HF_COM);
 	if (-1 == m_subs)
 	{
 		LOGE("get com interface err. %s : %d\n", __FILE__, __LINE__);
 		return -1;
-	}
+	}*/
 	
 	// 完成CHF的初始化工作
 	if (-1 == CHF::Initialize())
@@ -440,21 +454,23 @@ void CVisionRcm::WriteFlg(int fd)
 ************************************/
 void CVisionRcm::GenerateMsg()
 {	
+	GetImuFromCan();
+	
 	vector<MSG_TAG*>::iterator itv = m_procTag.vPMsgTag.begin();
 	for (; itv != m_procTag.vPMsgTag.end(); ++itv)
 	{
-		unsigned char type = *(unsigned char*)(m_regPtr + 0x25 * 4);
+		/*unsigned char type = *(unsigned char*)(m_regPtr + 0x25 * 4);
 		if (type != (*itv)->type)
 		{
 			continue;
-		}
+		}*/
 	
 		VISION_MSG msg;
 		
 		MSG_TAG* pMsgTag = *itv;
 		
 		msg.id = pMsgTag->id;
-		msg.data.size = 0;
+		msg.data.x.size = 0;
 		msg.data.ptr = pMsgTag->isBig ? (char*)m_pData : NULL;
 		
 		int err = 0;
@@ -685,13 +701,10 @@ void CVisionRcm::DisableSonar()
 	*pSonar |= 0x00000001;
 }
 
-/************************************
-功能：	获取IMU数据
-参数：	无
-返回：	成功 0，失败 -1
-************************************/
-/*int CVisionRcm::GetImu(IMU_DATA* pImu)
+void CVisionRcm::GetImuFromCan()
 {
+	IMU_DATA* pImu = &m_imu;
+	
 	int len = (int)sizeof(IMU_DATA);
 	
 	// IMU
@@ -728,7 +741,12 @@ void CVisionRcm::DisableSonar()
 		u_4Q.nq = *(int*)(m_regPtr + 0x43 * 4);
 		pImu->q3 = u_4Q.q;
 	}
-	
-	return 0;
-}*/
+}
+
+void CVisionRcm::RunAlgTask()
+{
+	// 算法任务
+	USleep(30000);
+}
+
 

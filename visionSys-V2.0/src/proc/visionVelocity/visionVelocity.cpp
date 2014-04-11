@@ -4,7 +4,7 @@ CREATOR :	lifani
 DATE	:	2014.1.2
 *************************************/
 #include "visionVelocity.h"
-#include <VO/demon.h>
+#include <VO/system_io.h>
 
 #define LOG_TAG "VISION_VELOCITY"
 
@@ -50,8 +50,31 @@ int CVisionVelocity::ActiveImp()
 	// 初始化选项
 	InitOption();
 	
+	m_pVoInfo = new char[sizeof(vo_info)];
+	if (NULL == m_pVoInfo)
+	{
+		LOGE("malloc vo info buf err(%d).", errno);
+		return -1;
+	}
+	
+	m_pBranchInfo = new char[sizeof(branch_info) * m_Num];
+	if (NULL == m_pBranchInfo)
+	{
+		LOGE("malloc branch info buf err(%d).", errno);
+		return -1;
+	}
+	
 	// 注册算法接口
-	Register(m_Num);
+	if (!init_vo("/cache", m_Num))
+	{
+		SetStatusCode(ERR_PROC_UNINTIED);
+		
+		LOGE("vo init err.");
+		return -1;
+	}
+	
+	// 设置状态码
+	SetStatusCode(ERR_INTIALIZED);
 	
 	LOGW("VisionVelocity actived. %s : %d\n", __FILE__, __LINE__);
 	
@@ -83,19 +106,17 @@ int CVisionVelocity::DeactiveImp()
 ************************************/
 void CVisionVelocity::ProcessMsg(VISION_MSG* pMsg)
 {
-	if (NULL != pMsg)
+	if (NULL != pMsg && NULL != pMsg->data.ptr)
 	{
-		unsigned int cnt0 = *(unsigned int*)(pMsg->data.ptr + 0);
-		unsigned int cnt1 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE);
-		unsigned int cnt2 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE * 2);
-		unsigned int cnt3 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE * 3);
+		m_pImu = (char*)(pMsg->data.ptr + 2 * IMG_SIZE);
 		
-		cout << "***" << cnt0 << " " << cnt1 << " " << cnt2 << " " << cnt3 << "***" <<  endl;
-		/*m_pImu = (char*)(pMsg->data.ptr + 8 * MAX_CLOUD_SIZE);
+		IMU_DATA* pImu = (IMU_DATA*)m_pImu;
+		
+		cout << pImu->acc_x << " " << pImu->q0 << " " << pImu->q1 << " " << pImu->q2 << " " << pImu->q3 << endl;
 		
 		// 测速算法接口
-		RunVelocity(pMsg->data.ptr, m_Num, m_pImu, (char*)m_pFeedBack, 
-			(Stereo_Info*)m_pStereoBuf, (VO_Info*)m_pVoBuf);*/
+		run_vo(pMsg->data.ptr, m_pImu, 
+			(vo_info*)m_pVoInfo, (branch_info*)m_pBranchInfo, (vo_can_output*)m_pFeedBack);
 		
 		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)m_pFeedBack;
 		p->cnt = m_index++;
@@ -103,7 +124,7 @@ void CVisionVelocity::ProcessMsg(VISION_MSG* pMsg)
 		// 发送算法结果
 		if (-1 == SendSmallMsg(VELOCITY_BACK, (char*)p, sizeof(CAN_VELOCITY_DATA)))
 		{
-			cout << "!!!!! err " << endl;
+			LOGE("send vo result msg err.");
 		}
 	}
 }

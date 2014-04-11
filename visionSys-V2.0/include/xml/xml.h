@@ -43,7 +43,7 @@ private :
 	
 	int GetFunc(MSG_TAG* pMsgTag);
 	
-	int AddTail(MSG_TAG* pHead, MSG_TAG* pMsgTag);
+	int AddTail(MSG_TAG*& pHead, MSG_TAG* pMsgTag);
 	
 	int AddMsgTag(TiXmlElement* pElement, PROC_TAG& procTag);
 	

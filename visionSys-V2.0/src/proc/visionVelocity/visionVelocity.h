@@ -44,6 +44,9 @@ private :
 
 	char* m_pImu;
 	char* m_pFeedBack;
+	
+	char* m_pVoInfo;
+	char* m_pBranchInfo;
 };
 
 #endif

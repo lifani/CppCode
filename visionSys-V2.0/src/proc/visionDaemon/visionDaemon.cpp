@@ -5,9 +5,9 @@ DATE	:	2014.1.9
 *************************************/
 #include "visionDaemon.h"
 
-#define LOG_TAG "VISION_DAEMON"
+#include "../../common/can_data/CHF.h"
 
-const unsigned int MAX_INT_TIMES = 5;
+#define LOG_TAG "VISION_DAEMON"
 
 BEGAIN_MESSAGE_MAP(CVisionDaemon, CBaseVision)
 	ON_COMMAND(HEART_BIT, &CVisionDaemon::ProcessHeartMsg)
@@ -32,12 +32,19 @@ CVisionDaemon::~CVisionDaemon()
 
 int CVisionDaemon::ActiveImp()
 {
+	if (Initialize() < 0)
+	{
+		return 0;
+	}
+
 	LOGW("vision deamon actived. %s : %d\n", __FILE__, __LINE__);
 	return 0;
 }
 
 int CVisionDaemon::DeactiveImp()
 {
+	CHF::Destroy();
+
 	return 0;
 }
 
@@ -54,7 +61,7 @@ void CVisionDaemon::Daemon()
 			pProcInfo->times++;
 		}
 		
-		if (pProcInfo->times > MAX_UNRECV_TIMES)
+		if (pProcInfo->times > MAX_UNRECV_TIMES && pProcInfo->restart_times < MAX_RESTART_TIMES)
 		{
 			LOGW("lost connection to %s.", pProcInfo->pname.c_str());
 			
@@ -62,7 +69,7 @@ void CVisionDaemon::Daemon()
 			if (-1 == Restart(pProcInfo))
 			{
 				++itm;
-				LOGE("restart %s err.", pProcInfo->pname.c_str());
+				LOGE("restart %s err (%d).", pProcInfo->pname.c_str(), pProcInfo->restart_times);
 			}
 			else
 			{
@@ -74,16 +81,30 @@ void CVisionDaemon::Daemon()
 				
 				m_mapProcInfo.erase(itm++);
 				
-				LOGW("restart %s success.", pProcInfo->pname.c_str());
+				LOGW("restart %s success (%d).", pProcInfo->pname.c_str(), pProcInfo->restart_times);
 			}
 		}
 		else
 		{
+			if (pProcInfo->restart_times == MAX_RESTART_TIMES)
+			{
+				m_code = ERR_PROC_UNINTIED;
+			}
+			
 			++itm;
+		}
+		
+		// 取得最小错误码
+		if (pProcInfo->code < m_code)
+		{
+			m_code = pProcInfo->code;
 		}
 	}
 	
 	pthread_mutex_unlock(&m_lock);
+	
+	// 上报状态
+	SendAlarm();
 }
 
 void CVisionDaemon::ProcessHeartMsg(VISION_MSG* pMsg)
@@ -92,19 +113,37 @@ void CVisionDaemon::ProcessHeartMsg(VISION_MSG* pMsg)
 	{
 		pthread_mutex_lock(&m_lock);
 		
-		pid_t pid = pMsg->data.size;
+		// 心跳消息中size内容为pid
+		pid_t pid = pMsg->data.x.pid;
 		
 		PROC_INFO* pProcInfo = m_mapProcInfo[pid];
 		if (NULL != pProcInfo)
 		{
-			if (pProcInfo->times > 0)
-			{
-				--pProcInfo->times;
-			}
+			pProcInfo->code = pMsg->data.y.code;
+			pProcInfo->times = 0;
+			pProcInfo->restart_times = 0;
 		}
 		
 		pthread_mutex_unlock(&m_lock);
 	}
+}
+
+int CVisionDaemon::Initialize()
+{
+	m_can = CHF::FD(HF_CAN0);
+	if (-1 == m_can)
+	{
+		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if (-1 == CHF::Initialize(false))
+	{
+		LOGE("CHF init err. %s : %d\n", __FILE__, __LINE__);
+		return -1;
+	}
+	
+	return 0;
 }
 
 int CVisionDaemon::Restart(PROC_INFO* pProcInfo)
@@ -127,6 +166,7 @@ int CVisionDaemon::Restart(PROC_INFO* pProcInfo)
 	{
 		pProcInfo->pid = pid;
 		pProcInfo->times = 0;
+		pProcInfo->restart_times++;
 	}
 	else if (0 == pid)
 	{
@@ -153,7 +193,20 @@ void CVisionDaemon::KillProc(pid_t pid)
 		pclose(pf);
 		pf = NULL;
 	}
-	
+
 	waitpid(pid, 0, WCONTINUED);
 }
 
+void CVisionDaemon::SendAlarm()
+{
+	VISION_STATUS status;
+	
+	status.code = m_code;
+	
+	CAN_SNT_DATA tSndData;
+	
+	tSndData.can_id = 0x608;
+	tSndData.data = (char*)&status;
+	
+	CHF::SetContent(m_can, (char*)&tSndData, sizeof(VISION_STATUS));
+}

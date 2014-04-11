@@ -8,14 +8,14 @@ DATE	:	2014.1.2
 
 #include <typedef.h>
 
-class CQueueCtrl
+class CCanQueueCtrl
 {
 public :
 	
 	// mode 0: 先进先出 1：后进先出 
-	CQueueCtrl(unsigned int t_size, unsigned int t_cnt, bool mode = false);
+	CCanQueueCtrl(unsigned int t_size, unsigned int t_cnt, unsigned mode = 0);
 	
-	~CQueueCtrl();
+	~CCanQueueCtrl();
 	
 	int Initialize();
 	
@@ -32,7 +32,8 @@ private :
 	const unsigned int m_maxCnt;
 	const unsigned int m_totalSize;
 	
-	bool m_mode;
+	unsigned m_mode;
+	unsigned m_index;
 	char* m_ptr;
 	
 	pthread_mutex_t m_lock;

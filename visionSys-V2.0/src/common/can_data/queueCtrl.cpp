@@ -6,7 +6,7 @@ DATE	:	2014.1.2
 #include "queueCtrl.h"
 
 
-CQueueCtrl::CQueueCtrl(unsigned int t_size, unsigned int t_cnt, bool mode)
+CCanQueueCtrl::CCanQueueCtrl(unsigned int t_size, unsigned int t_cnt, unsigned mode)
 : m_fetchPos(0)
 , m_storePos(0)
 , m_size(t_size)
@@ -14,12 +14,13 @@ CQueueCtrl::CQueueCtrl(unsigned int t_size, unsigned int t_cnt, bool mode)
 , m_maxCnt(t_cnt)
 , m_totalSize(t_size * t_cnt)
 , m_mode(mode)
+, m_index(0)
 , m_ptr(0)
 {
 	pthread_mutex_init(&m_lock, NULL);
 }
 
-CQueueCtrl::~CQueueCtrl()
+CCanQueueCtrl::~CCanQueueCtrl()
 {
 	if (NULL != m_ptr)
 	{
@@ -35,7 +36,7 @@ CQueueCtrl::~CQueueCtrl()
 参数：	无
 返回：	成功 0，失败 -1
 ************************************/
-int CQueueCtrl::Initialize()
+int CCanQueueCtrl::Initialize()
 {
 	if (NULL == m_ptr)
 	{
@@ -56,7 +57,7 @@ int CQueueCtrl::Initialize()
 参数：	ptr char* 内容指针, 不能为NULL
 返回：	成功 0，失败 -1
 ************************************/
-int CQueueCtrl::push(char* ptr)
+int CCanQueueCtrl::push(char* ptr)
 {
 	if (NULL == ptr)
 	{
@@ -72,9 +73,13 @@ int CQueueCtrl::push(char* ptr)
 	
 	memcpy(m_ptr + m_storePos, ptr, m_size);
 
-	if (m_mode)
+	if (m_index++ > m_mode)
 	{
-		m_fetchPos = m_storePos;
+		m_fetchPos += m_size;
+		if (m_totalSize == m_fetchPos)
+		{
+			m_fetchPos = 0;
+		}
 	}
 	
 	m_storePos += m_size;
@@ -95,8 +100,8 @@ int CQueueCtrl::push(char* ptr)
 参数：	ptr char* 内容指针, 不能为空
 返回：	成功 0，失败 -1
 ************************************/
-int CQueueCtrl::pop(char* ptr)
-{
+int CCanQueueCtrl::pop(char* ptr)
+{	
 	if (NULL == ptr)
 	{
 		return -1;
@@ -111,14 +116,14 @@ int CQueueCtrl::pop(char* ptr)
 	
 	memcpy(ptr, m_ptr + m_fetchPos, m_size);
 	
-	if (!m_mode)
+	/*if (!m_mode)
 	{
 		m_fetchPos += m_size;
 		if (m_totalSize == m_fetchPos)
 		{
 			m_fetchPos = 0;
 		}
-	}
+	}*/
 	
 	--m_cnt;
 	

@@ -33,11 +33,17 @@ public :
 	
 private :
 
+	int Initialize();
+
 	int Restart(PROC_INFO* pProcInfo);
 	
 	void KillProc(pid_t pid);
+	
+	void SendAlarm();
 
 private :
+	
+	int m_can;
 
 	pthread_mutex_t m_lock;
 };

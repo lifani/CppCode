@@ -55,6 +55,7 @@ const VISION_TIMERMAP* CBaseVision::GetThisTimerMap()
 CBaseVision::CBaseVision(const char* ppname, const char* pname)
 : m_pname(pname)
 , m_pid(0)
+, m_code(0)
 , m_ppname(ppname)
 , m_ppid(0)
 , m_strCwd("")
@@ -187,7 +188,7 @@ void CBaseVision::AddMsgTag(const map<long, MSG_TAG*>& mapMsgTag, const map<stri
 		if (itm->first.compare(m_pname) == 0)
 		{
 			m_procTag = itm->second;
-			return;
+			break;
 		}
 		
 		vector<PROC_TAG>::const_iterator itv = itm->second.vProcTag.begin();
@@ -196,6 +197,16 @@ void CBaseVision::AddMsgTag(const map<long, MSG_TAG*>& mapMsgTag, const map<stri
 			if (itv->name.compare(m_pname) == 0)
 			{
 				m_procTag = *itv;
+				
+				vector<MSG_TAG*>::iterator itv = m_procTag.vPMsgTag.begin();
+				for (; itv != m_procTag.vPMsgTag.end(); ++itv)
+				{
+					MSG_TAG* pMsgTag = *itv;
+					while (NULL != pMsgTag)
+					{
+						pMsgTag = pMsgTag->next;
+					}
+				}
 
 				return;
 			}
@@ -211,6 +222,7 @@ void CBaseVision::AddProcInfo(const char* pname, int pid)
 	pProcInfo->pname = pname;
 	pProcInfo->pid = pid;
 	pProcInfo->times = 0;
+	pProcInfo->restart_times = 0;
 	
 	m_mapProcInfo[pid] = pProcInfo;
 }
@@ -279,10 +291,10 @@ int CBaseVision::SendSmallMsg(long id, char* ptr, unsigned int size)
 	VISION_MSG msg;
 	
 	msg.id = id;
-	msg.data.size = size;
+	msg.data.x.size = size;
 	msg.data.ptr = NULL;
 	
-	memcpy(msg.data.buf, ptr, size);
+	memcpy(msg.data.y.buf, ptr, size);
 	
 	return CMT::SendMsg(&msg);
 }
@@ -522,7 +534,8 @@ void CBaseVision::SendHeartMsg()
 	
 	msg.id = HEART_BIT;
 	msg.data.ptr = NULL;
-	msg.data.size = m_pid;
+	msg.data.x.pid = m_pid;
+	msg.data.y.code = m_code;
 	
 	if (-1 == CMT::SendMsg(&msg))
 	{
@@ -566,5 +579,10 @@ void CBaseVision::USleep(unsigned int usec)
 	delay.tv_usec = usec;
 	
 	select(0, NULL, NULL, NULL, &delay);
+}
+
+void CBaseVision::SetStatusCode(int code)
+{
+	m_code = code;
 }
 

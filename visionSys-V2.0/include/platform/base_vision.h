@@ -158,6 +158,8 @@ protected :
 
 	void USleep(unsigned int usec);
 	
+	void SetStatusCode(int code);
+	
 private :
 
 	void GetProcInfo();
@@ -175,6 +177,7 @@ protected :
 
 	string m_pname;
 	pid_t m_pid;
+	int	m_code;
 	
 	map<string, MSG_FUNC> m_mapMsgFunc;
 	map<int, PROC_INFO*> m_mapProcInfo;

@@ -40,6 +40,8 @@ private :
 
 	int CreateFd(const char* identify);
 	
+	int ResetCan(const char* identify);
+	
 	void SetFilter(struct can_filter* pFilter, unsigned int size);
 	
 	void Process(struct can_frame* pFrame);
@@ -62,7 +64,7 @@ private :
 	
 	int m_fd;
 	int m_key;
-	int m_bitrate;
+	unsigned m_bitrate;
 	int m_nContent;
 	
 	unsigned int m_index;
@@ -74,8 +76,8 @@ private :
 	
 	pthread_mutex_t m_lock;
 	
-	CQueueCtrl m_388Queue;
-	CQueueCtrl m_imuQueue;
+	CCanQueueCtrl m_388Queue;
+	CCanQueueCtrl m_imuQueue;
 	
 	char m_tBuf[256];
 };

@@ -36,6 +36,15 @@
 #define VELOCITY_LOG		201
 #define BM_LOG				202
 
+// err code
+
+#define ERR_INTIALIZED		0
+
+#define ERR_FPGA_UNINITED	-2
+
+
+#define ERR_PROC_UNINTIED	-20
+
 // 寄存器起始地址
 const unsigned int FPGA_HREG = 0xFF220000;
 
@@ -60,6 +69,8 @@ const unsigned int MSG_MEM_SIZE = 1024 * 1024;
 
 const unsigned int MAX_UNRECV_TIMES = 3;
 
+const unsigned int MAX_RESTART_TIMES = 3;
+
 // 消息驱动机制
 // 和定时器
 // 涉及数据结构定义开始
@@ -76,8 +87,19 @@ typedef int (CAbstractPacket::*HANDLER)();
 typedef struct _MSG_DATA
 {
 	char* 			ptr;
-	unsigned 		size;
-	char			buf[64];
+	
+	union _x
+	{
+		unsigned 	size;
+		pid_t		pid;
+	} x;
+	
+	union _y
+	{
+		char		buf[64];
+		int			code;
+	} y;
+	
 } MSG_DATA;
 
 typedef struct _VISION_MSG
@@ -172,7 +194,9 @@ typedef struct _PROC_INFO
 {
 	string 		pname;
 	int   		pid;
+	int			code;
 	unsigned	times;
+	unsigned	restart_times;
 } PROC_INFO;
 
 // pthread
@@ -239,7 +263,7 @@ typedef struct _CAN_SNT_DATA
 	char* data;
 } CAN_SNT_DATA;
 
-typedef struct _CAN_VELOCITY_DATA
+typedef struct _tCAN_VELOCITY_DATA
 {
 	float dx;
 	float dy;
@@ -261,6 +285,12 @@ typedef struct _CAN_BM_DATA
 	
 	unsigned int size;
 } CAN_BM_DATA;
+
+// VISION系统运行状态
+typedef struct _VISION_STATUS
+{
+	int code;
+} VISION_STATUS;
 
 #pragma pack()
 

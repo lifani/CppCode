@@ -31,7 +31,7 @@ protected :
 	
 	SND_DATA m_sndData;
 	
-	CQueueCtrl m_sndCtrl;
+	CCanQueueCtrl m_sndCtrl;
 };
 
 #endif

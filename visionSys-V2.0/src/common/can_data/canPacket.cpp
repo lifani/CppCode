@@ -22,8 +22,8 @@ DATE	:	2014.1.2
 CCanPacket::CCanPacket() : m_fd(0), m_key(0), m_bitrate(1000000), m_nContent(0), m_index(0)
 , m_rHdl((HANDLER)0)
 , m_wHdl((HANDLER)0)
-, m_388Queue(sizeof(MC), 10, true)
-, m_imuQueue(sizeof(IMU_DATA), 10, true)
+, m_388Queue(sizeof(MC), 10, 0)
+, m_imuQueue(sizeof(IMU_DATA), 30, 20)
 {
 	pthread_mutex_init(&m_lock, NULL);
 }
@@ -112,7 +112,6 @@ int CCanPacket::WriteFd()
 		// 若失败，则再重试至成功为止
 		if ( NULL != itm->second)
 		{
-			//int err = itm->second->Process(&frame);
 			if (itm->second->Process(&frame) > 0)
 			{
 				while (write(m_fd, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame))
@@ -123,18 +122,6 @@ int CCanPacket::WriteFd()
 				
 				break;
 			}
-			/*else if (0 == err)
-			{
-				pthread_mutex_lock(&m_lock);
-				m_nContent = m_nContent > 0 ? (m_nContent - 1) : 0;
-				if (0 == m_nContent)
-				{
-					m_wHdl = (HANDLER)0;
-				}
-				pthread_mutex_unlock(&m_lock);
-			}*/
-			
-			//break;
 		}
 	}
 	
@@ -180,12 +167,6 @@ void CCanPacket::SetContent(const char* ptr, int len)
 	}
 	
 	const CAN_SNT_DATA* pCanData = (CAN_SNT_DATA*)ptr;
-	//if (NULL == pCanData)
-	//{
-	//	return;
-	//}
-	
-	//pthread_mutex_lock(&m_lock);
 	
 	CAbstractCanCtrl* p = m_mapWrCanCtrl[pCanData->can_id];
 	if (NULL != p)
@@ -194,16 +175,7 @@ void CCanPacket::SetContent(const char* ptr, int len)
 		{
 			LOGE("push data err, can id = %d\n", pCanData->can_id);
 		}
-		
-		//++m_nContent;
 	}
-	
-	//if (m_nContent > 0)
-	//{
-	//	m_wHdl = static_cast<HANDLER>(&CCanPacket::WriteFd);
-	//}
-	
-	//pthread_mutex_unlock(&m_lock);
 }
 
 /************************************
@@ -247,8 +219,10 @@ int CCanPacket::Initialize(int op)
 	m_mapRdCanCtrl[0x388] = new C388CanCtrl;
 	
 	m_mapWrCanCtrl[0x095] = new CSndCanCtrl;
+	m_mapWrCanCtrl[0x608] = new CSndCanCtrl;
 	
 	m_mapWrCanCtrl[0x095]->Initialize(0x095, 0x1005);
+	m_mapWrCanCtrl[0x608]->Initialize(0x608, 0x100C);
 
 	m_imuQueue.Initialize();
 	m_388Queue.Initialize();
@@ -266,24 +240,39 @@ int CCanPacket::Initialize(int op)
 ************************************/
 int CCanPacket::CreateFd(const char* identify)
 {
-	if (can_do_stop(identify) < 0)
+	int state = 0;
+	if (can_get_state(identify, &state) < 0)
 	{
-		LOGE("stop can error, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
+		LOGE("get can state err, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
 		return -1;
 	}
 	
-	if (can_set_bitrate(identify, m_bitrate) < 0)
+	if (0 != state)
 	{
-		LOGE("set bitrate error, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
-		return -1;
+		if (ResetCan(identify) < 0)
+		{
+			return -1;
+		}
 	}
-	
-	if (can_do_start(identify) < 0)
+	else
 	{
-		LOGE("start can error, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
-		return -1;
+		struct can_bittiming can_bit;
+		
+		if (can_get_bittiming(identify, &can_bit) < 0)
+		{
+			LOGE("get bittiming err. %s : %d\n", __FILE__, __LINE__);
+			return -1;
+		}
+		
+		if (m_bitrate != can_bit.bitrate)
+		{
+			if (ResetCan(identify) < 0)
+			{
+				return -1;
+			}
+		}
 	}
-	
+
 	if ((m_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
 	{
 		LOGE("get socket fail. %s : %d\n", __FILE__, __LINE__);
@@ -315,6 +304,29 @@ int CCanPacket::CreateFd(const char* identify)
 	rfilter[0].can_mask = CAN_SFF_MASK;
 	
 	SetFilter(rfilter, sizeof(can_filter));
+	
+	return 0;
+}
+
+int CCanPacket::ResetCan(const char* identify)
+{
+	if (can_do_stop(identify) < 0)
+	{
+		LOGE("stop can error, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if (can_set_bitrate(identify, m_bitrate) < 0)
+	{
+		LOGE("set bitrate error, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if (can_do_start(identify) < 0)
+	{
+		LOGE("start can error, name : %s. %s : %d\n", identify, __FILE__, __LINE__);
+		return -1;
+	}
 	
 	return 0;
 }

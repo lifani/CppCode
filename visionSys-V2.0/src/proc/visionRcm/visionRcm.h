@@ -79,7 +79,9 @@ private :
 	
 	void DisableSonar();
 	
-	//int GetImu(IMU_DATA* pImu);
+	void GetImuFromCan();
+	
+	void RunAlgTask();
 	
 private :
 

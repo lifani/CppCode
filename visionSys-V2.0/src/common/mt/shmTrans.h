@@ -20,7 +20,7 @@ public :
 	unsigned short m_store;
 	unsigned short m_total;
 	
-	SHM_HEAD() : m_fetch(0), m_store(0), m_total
+	SHM_HEAD() : m_fetch(0), m_store(0), m_total(0)
 	{
 	}
 };

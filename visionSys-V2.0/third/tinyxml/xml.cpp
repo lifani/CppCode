@@ -191,10 +191,9 @@ int CXml::PaserOptionTagNode(TiXmlElement* pElement)
 	{
 		OPTION op;
 		
-		op.key = GetIntAttribute(pChild, "value");
-		
 		GetStrAttribute(pChild, "key", op.key);
-		
+		op.value = GetIntAttribute(pChild, "value");
+
 		m_vOption.push_back(op);
 	}
 	
@@ -239,23 +238,21 @@ int CXml::GetFunc(MSG_TAG* pMsgTag)
 	return 0;
 }
 
-int CXml::AddTail(MSG_TAG* pHead, MSG_TAG* pMsgTag)
+int CXml::AddTail(MSG_TAG*& pHead, MSG_TAG* pMsgTag)
 {
 	if (NULL == pHead || NULL == pMsgTag)
 	{
 		return -1;
 	}
 	
-	MSG_TAG* pNext = pHead->next;
-	while(NULL != pNext)
+	MSG_TAG* pNext = pHead;
+	while(NULL != pNext->next)
 	{
 		pNext = pNext->next;
 	}
 	
-	pNext = pMsgTag;
-	
-	pNext->next = NULL;
-	
+	pNext->next = pMsgTag;
+
 	return 0;
 }
 

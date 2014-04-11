@@ -62,7 +62,7 @@ private :
 	char m_paritybits;
 	char m_stopbits;
 	
-	CQueueCtrl m_uartCtrl;
+	CCanQueueCtrl m_uartCtrl;
 };
 
 #endif

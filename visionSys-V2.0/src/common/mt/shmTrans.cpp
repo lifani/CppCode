@@ -52,15 +52,20 @@ int CShmCtrl::push(VISION_MSG* pMsg)
 	// ¼ÓËø
 	if (writew_lock(m_fd, m_offset, MSG_MEM_SIZE) == -1)
 	{
+		LOGE("lock err(errno). %s : %d\n", __FILE__, __LINE__);
 		return -1;
 	}
 	
 	if (m_pHead->m_total == MAX_MSG)
 	{
+		LOGE("content reach max, id = %ld. %s : %d\n", pMsg->id, __FILE__, __LINE__);
+		
+		// ½âËø
+		un_lock(m_fd, m_offset, MSG_MEM_SIZE);
 		return -1;
 	}
 	
-	memcpy(m_pData + m_pHead->m_store * LCK_SIZE, pMsg->data.ptr, pMsg->data.size);
+	memcpy(m_pData + m_pHead->m_store * LCK_SIZE, pMsg->data.ptr, pMsg->data.x.size);
 	
 	m_pHead->m_fetch = m_pHead->m_store;
 	m_pHead->m_store = (m_pHead->m_store + 1) % 2;
@@ -86,15 +91,20 @@ int CShmCtrl::pop(VISION_MSG* pMsg)
 	
 	if (writew_lock(m_fd, m_offset, MSG_MEM_SIZE) == -1)
 	{
+		LOGE("lock err(errno). %s : %d\n", __FILE__, __LINE__);
 		return -1;
 	}
 	
 	if (m_pHead->m_total == 0)
 	{
+		LOGE("no content. %s : %d\n", __FILE__, __LINE__);
+		
+		// ½âËø
+		un_lock(m_fd, m_offset, MSG_MEM_SIZE);
 		return -1;
 	}
 	
-	memcpy(pMsg->data.ptr, m_pData + m_pHead->m_fetch * LCK_SIZE, pMsg->data.size);
+	memcpy(pMsg->data.ptr, m_pData + m_pHead->m_fetch * LCK_SIZE, pMsg->data.x.size);
 	
 	m_pHead->m_total--;
 	
@@ -248,7 +258,7 @@ int CShmTrans::Init(const map<long, MSG_TAG*>& mapPMsgTag, key_t key)
 ************************************/
 int CShmTrans::ReadMsg(VISION_MSG* pMsg)
 {
-	if (NULL == pMsg->data.ptr || 0 == pMsg->data.size)
+	if (NULL == pMsg->data.ptr || 0 == pMsg->data.x.size)
 	{
 		return 0;
 	}
@@ -279,7 +289,7 @@ int CShmTrans::ReadMsg(VISION_MSG* pMsg)
 ************************************/
 int CShmTrans::WriteMsg(VISION_MSG* pMsg)
 {
-	if (NULL == pMsg->data.ptr || 0 == pMsg->data.size)
+	if (NULL == pMsg->data.ptr || 0 == pMsg->data.x.size)
 	{
 		return 0;
 	}

@@ -16,6 +16,8 @@ static bool g_running = true;
 static unsigned int g_uTaskNum = 0;
 static pthread_t g_tid = 0;
 
+bool CHF::m_flg = true;
+
 CTask::CTask() : m_pPacket(NULL), m_handler(NULL)
 {
 }
@@ -99,8 +101,10 @@ int CHF::FD(ENUM_HF_TYPE type, int op)
 参数：	无
 返回：	成功 0，失败 -1
 ************************************/
-int CHF::Initialize()
+int CHF::Initialize(bool flg)
 {
+	m_flg = flg;
+	
 	// 启动接收线程
 	if (0 != pthread_create(&g_tid, NULL, poll_run, NULL))
 	{
@@ -204,7 +208,7 @@ void* CHF::poll_run(void* arg)
 				{
 					int fd = g_ArrayPollFd[i].fd;
 					
-					if (g_ArrayPollFd[i].revents & POLLIN)
+					if (m_flg && g_ArrayPollFd[i].revents & POLLIN)
 					{
 						g_ArrayTask[g_uTaskNum].m_pPacket = g_mapFdPacket[fd];
 						g_ArrayTask[g_uTaskNum].m_handler = g_mapFdPacket[fd]->GetHandler(POLLIN);
