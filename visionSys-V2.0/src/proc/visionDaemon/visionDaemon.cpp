@@ -14,7 +14,7 @@ BEGAIN_MESSAGE_MAP(CVisionDaemon, CBaseVision)
 END_MESSAGE_MAP()
 
 BEGAIN_TIMER_MAP(CVisionDaemon, CBaseVision)
-	ON_TIMER(200000, &CVisionDaemon::Daemon)
+	ON_TIMER(200000, false, &CVisionDaemon::Daemon)
 END_TIMER_MAP()
 
 DEFINE_CREATE_INSTANCE(CVisionDaemon)

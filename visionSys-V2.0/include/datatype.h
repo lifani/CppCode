@@ -1,6 +1,8 @@
 #ifndef __DATA_TYPE_H__
 #define __DATA_TYPE_H__
 
+//#define _RUN_SMALL_ALG_
+
 #define DEVICE_FILENAME 	"/dev/fpga"
 #define DEVICE_RBF			"/dev/fpga0"
 #define DEVICE_RBF_FILE		"/etc/firmware/fpga.rbf"
@@ -157,6 +159,7 @@ typedef struct _VISION_MSGMAP
 typedef struct _VISION_TIMERMAP_ENTRY
 {
 	long 			timeusec;
+	bool			bWait;
 	VISION_PTIMER	pfn;
 } VISION_TIMERMAP_ENTRY;
 
@@ -164,6 +167,7 @@ typedef struct _VISION_TIMER
 {
 	long			timeusec;
 	int				signo;
+	bool			bWait;
 	pthread_t		req_tid;
 	pthread_t		res_tid;
 	VISION_PTIMER 	pfn;
@@ -285,6 +289,28 @@ typedef struct _CAN_BM_DATA
 	
 	unsigned int size;
 } CAN_BM_DATA;
+
+typedef struct _VISION_CTRL
+{
+	float 		vel[3];
+	float   	yaw;
+	unsigned	ctrl_cmd;
+} vision_ctrl_t;
+
+typedef struct _RECTIFIED_IMG
+{
+	char* pDisparity;
+	char* plImg;
+	char* prImg;
+	
+	IMU_DATA imu;
+	
+	CAN_VELOCITY_DATA vo;
+	
+	int eTime[4];
+	float fSonar[3];
+	
+} RECTIFIED_IMG;
 
 // VISION系统运行状态
 typedef struct _VISION_STATUS

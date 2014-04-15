@@ -35,13 +35,17 @@ public :
 	
 	void ProcessVelocityMsg(VISION_MSG* pMsg);
 	
-	void SendCanData();
+	void SendVoData();
+	
+	void SendCanData(int identify, int id, char* pData, size_t size);
 	
 	int GetImu(VISION_MSG* pMsg, int beginPos, int offset);
 	
 	int GetDataFromFpga(VISION_MSG* pMsg, int beginPos, int offset);
 	
 	int GetVCtrl(VISION_MSG* pMsg, int beginPos, int offset);
+	
+	int Prepare4Vo(VISION_MSG* pMsg, int beginPos, int offset);
 	
 private :
 
@@ -53,7 +57,7 @@ private :
 	
 	int InitOption();
 	
-	void process_poll(struct pollfd* p);
+	int process_poll(struct pollfd* p);
 	
 	bool isReady();
 	
@@ -80,8 +84,16 @@ private :
 	void DisableSonar();
 	
 	void GetImuFromCan();
-	
+
+#ifdef _RUN_SMALL_ALG_
+
 	void RunAlgTask();
+
+#endif
+	
+	void Prepare4Bm(RECTIFIED_IMG* pRecInfo);
+	
+	void OutTime(FILE* pf);
 	
 private :
 
@@ -97,6 +109,12 @@ private :
 	int m_PegTop;
 	int m_Folders;
 	int m_Files;
+	int m_offset_d;
+	int m_offset_l;
+	int m_offset_r;
+	int m_discards;
+	
+	unsigned int m_index4Vo;
 	
 	unsigned int m_sumSize;
 	
@@ -110,8 +128,15 @@ private :
 	
 	bool m_work;
 	
+	unsigned m_index;
+	
 	struct timeval start_time;
     struct timeval end_time;
+	
+	FILE* m_pf0;
+	FILE* m_pf1;
+	
+	bool m_bFirst;
 };
 
 #endif

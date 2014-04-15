@@ -5,6 +5,10 @@ DATE	:	2014.1.2
 *************************************/
 #include "visionRcm.h"
 
+#ifdef _RUN_SMALL_ALG_
+#include <bm/runbm.h>
+#endif
+
 #undef LOG_TAG
 #define LOG_TAG "VISION_RCM"
 
@@ -14,8 +18,8 @@ BEGAIN_MESSAGE_MAP(CVisionRcm, CBaseVision)
 END_MESSAGE_MAP()
 
 BEGAIN_TIMER_MAP(CVisionRcm, CBaseVision)
-	ON_TIMER(200000, &CBaseVision::SendHeartMsg)
-	ON_TIMER(100000, &CVisionRcm::SendCanData)
+	ON_TIMER(200000, false, &CBaseVision::SendHeartMsg)
+	ON_TIMER(100000, true, &CVisionRcm::SendVoData)
 END_TIMER_MAP()
 
 DEFINE_CREATE_INSTANCE(CVisionRcm)
@@ -33,12 +37,19 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 , m_PegTop(0)
 , m_Folders(0)
 , m_Files(0)
+, m_offset_d(0)
+, m_offset_l(0)
+, m_offset_r(0)
+, m_discards(0)
+, m_index4Vo(0)
 , m_sumSize(0)
 , m_ptr(0)
 , m_regPtr(0)
 , m_pData(0)
 , m_qCtrl(sizeof(CAN_VELOCITY_DATA), 10, false)
 , m_work(false)
+, m_index(0)
+, m_bFirst(true)
 {
 }
 
@@ -69,6 +80,7 @@ int CVisionRcm::ActiveImp()
 	// 注册消息生成函数
 	REGISTER_MSG_FUNC("GetDataFromFpga", &CVisionRcm::GetDataFromFpga);
 	REGISTER_MSG_FUNC("GetImu", &CVisionRcm::GetImu);
+	REGISTER_MSG_FUNC("VO", &CVisionRcm::Prepare4Vo);
 	
 	// 设置状态码
 	SetStatusCode(ERR_INTIALIZED);
@@ -111,6 +123,22 @@ int CVisionRcm::DeactiveImp()
 		m_pData = NULL;
 	}
 	
+#ifdef _RUN_SMALL_ALG_
+	ReleseBm();
+#endif
+
+	if (NULL != m_pf0)
+	{
+		fclose(m_pf0);
+		m_pf0 = NULL;
+	}
+	
+	if (NULL != m_pf1)
+	{
+		fclose(m_pf1);
+		m_pf1 = NULL;
+	}
+	
 	LOGW("VisionRcm deactived. %s : %d\n", __FILE__, __LINE__);
 	
 	return 0;
@@ -131,14 +159,29 @@ void CVisionRcm::TransData()
 		p_fd.events = POLLERR | POLLHUP;
 	
 		// 调用轮询函数
-		process_poll(&p_fd);
+		if (0 != process_poll(&p_fd))
+		{
+			// 将轮询标志位置0
+			WriteFlg(t_fd);
+			continue;
+		}
+		
+		OutTime(m_pf0);
+		
+		if (m_bFirst)
+		{
+			// 通知Timer结束等待
+			NoticeTimer();
+			m_bFirst = false;
+		}
 		
 		// 生成消息并发送
 		GenerateMsg();
 		
+#ifdef _RUN_SMALL_ALG_
 		// 算法任务
 		RunAlgTask();
-		
+#endif
 		// 将轮询标志位置0
 		WriteFlg(t_fd);
 	}
@@ -164,18 +207,31 @@ void CVisionRcm::ProcessVelocityMsg(VISION_MSG* pMsg)
 参数：	无
 返回：	无 
 ************************************/
-void CVisionRcm::SendCanData()
+void CVisionRcm::SendVoData()
 {
-	CAN_SNT_DATA tSntData;
-
 	CAN_VELOCITY_DATA data;
 	if (m_qCtrl.pop((char*)&data) == 0)
 	{	
-		tSntData.can_id = 0x095;
-		tSntData.data = (char*)&data;
+		OutTime(m_pf1);
+		SendCanData(m_can0, 0x095, (char*)&data, sizeof(CAN_VELOCITY_DATA));
 		
-		CHF::SetContent(m_can0, (char*)&tSntData, sizeof(CAN_VELOCITY_DATA));
+		m_index++;
 	}
+}
+
+void CVisionRcm::SendCanData(int identify, int id, char* pData, size_t size)
+{
+	if (NULL == pData)
+	{
+		return;
+	}	
+
+	CAN_SNT_DATA tSntData;
+	
+	tSntData.can_id = id;
+	tSntData.data = pData;
+	
+	CHF::SetContent(identify, (char*)&tSntData, size);
 }
 
 int CVisionRcm::GetImu(VISION_MSG* pMsg, int beginPos, int offset)
@@ -205,6 +261,22 @@ int CVisionRcm::GetDataFromFpga(VISION_MSG* pMsg, int beginPos, int offset)
 
 int CVisionRcm::GetVCtrl(VISION_MSG* pMsg, int beginPos, int offset)
 {
+	return 0;
+}
+
+int CVisionRcm::Prepare4Vo(VISION_MSG* pMsg, int beginPos, int offset)
+{
+	if (m_index4Vo++ % 2 != 0)
+	{
+		return -1;
+	}
+	
+	if (NULL != pMsg->data.ptr)
+	{
+		GetDataFromFpga(pMsg, beginPos, offset);
+		GetImu(pMsg, beginPos, offset);
+	}
+	
 	return 0;
 }
 
@@ -294,6 +366,21 @@ int CVisionRcm::Initialize()
 	if (m_Sonar)
 	{
 		EnableSonar();
+	}
+	
+#ifdef _RUN_SMALL_ALG_
+
+	RegisterBm();
+
+#endif
+
+	m_pf0 = fopen("/data/time0.txt", "wb+");
+	m_pf1 = fopen("/data/time1.txt", "wb+");
+	
+	if (NULL == m_pf0 || NULL == m_pf1)
+	{
+		LOGE("open time file err.");
+		return -1;
 	}
 	
 	return 0;
@@ -388,6 +475,16 @@ int CVisionRcm::InitOption()
 		{
 			m_Files = itv->value;
 		}
+		
+		if ((itv->key).compare(string("wtime")) == 0)
+		{
+			m_wTime = itv->value;
+		}
+		
+		if ((itv->key).compare(string("discards")) == 0)
+		{
+			m_discards = itv->value;
+		}
 	}
 	
 	return 0;
@@ -396,9 +493,9 @@ int CVisionRcm::InitOption()
 /************************************
 功能：	轮询函数
 参数：	无
-返回：	无
+返回：	0 or 1
 ************************************/
-void CVisionRcm::process_poll(struct pollfd* p)
+int CVisionRcm::process_poll(struct pollfd* p)
 {
 	int err = 0;
 	while (1)
@@ -417,6 +514,14 @@ void CVisionRcm::process_poll(struct pollfd* p)
 			break;
 		}
 	}
+	
+	if (m_discards > 0)
+	{
+		--m_discards;
+		return -1;
+	}
+	
+	return 0;
 }
 
 /************************************
@@ -743,10 +848,79 @@ void CVisionRcm::GetImuFromCan()
 	}
 }
 
+#ifdef _RUN_SMALL_ALG_
+
 void CVisionRcm::RunAlgTask()
 {
-	// 算法任务
-	USleep(30000);
+	// 避障算法任务
+	
+	RECTIFIED_IMG rec_info;
+	
+	// 准备避障数据
+	Prepare4Bm(&rec_info);
+	
+	char szOut[256] = {0};
+	unsigned len = 0;
+	unsigned alarm = 0;
+	
+	// 运行避障算法
+	RunBm(&rec_info, szOut, len, alarm);
+	
+	SendCanData(m_can0, 0x608, szOut, len);
+}
+
+#endif
+
+void CVisionRcm::Prepare4Bm(RECTIFIED_IMG* pRecInfo)
+{
+	if (NULL == pRecInfo)
+	{
+		return;
+	}
+	
+	// 深度图
+	pRecInfo->pDisparity = (char*)(m_ptr + m_offset_d);
+	
+	// 矫正图像
+	pRecInfo->plImg = (char*)(m_ptr + m_offset_l);
+	pRecInfo->prImg = (char*)(m_ptr + m_offset_r);
+	
+	// 姿态包
+	pRecInfo->imu = m_imu;
+	
+	// 曝光时间
+	unsigned* pHex = (unsigned*)(m_regPtr + 0x107 * 4);
+	pRecInfo->eTime[0] = *pHex * 20;
+	
+	pHex = (unsigned*)(m_regPtr + 0x108 * 4);
+	pRecInfo->eTime[1] = *pHex * 20;
+
+	pHex = (unsigned*)(m_regPtr + 0x109 * 4);
+	pRecInfo->eTime[2] = *pHex * 20;	
+	
+	pHex = (unsigned*)(m_regPtr + 0x10a * 4);
+	pRecInfo->eTime[3] = *pHex * 20;
+	
+	// 超声波, 待增加	
+	
+	return;
+}
+
+void CVisionRcm::OutTime(FILE* pf)
+{
+	if (NULL == pf)
+	{
+		return;
+	}
+	
+	struct timeval t;
+	gettimeofday(&t, NULL);
+	
+	unsigned ut = t.tv_sec * 1000 + t.tv_usec / 1000;
+	
+	fprintf(pf, "%06d	%08d\n", m_index, ut);
+	
+	fflush(pf);
 }
 
 

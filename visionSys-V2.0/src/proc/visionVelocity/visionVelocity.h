@@ -28,6 +28,8 @@ public :
 	virtual int DeactiveImp();
 	
 	void ProcessMsg(VISION_MSG* pMsg);
+	
+	void StoreImu();
 
 private :
 	
@@ -47,6 +49,13 @@ private :
 	
 	char* m_pVoInfo;
 	char* m_pBranchInfo;
+	
+	FILE* m_pfImu;
+	
+	pthread_mutex_t m_lock;
+	pthread_cond_t m_ready;
+	
+	CQueueCtrl m_queueCtrl;
 };
 
 #endif

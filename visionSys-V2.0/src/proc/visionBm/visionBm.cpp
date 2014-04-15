@@ -12,7 +12,7 @@ BEGAIN_MESSAGE_MAP(CVisionBm, CBaseVision)
 END_MESSAGE_MAP()
 
 BEGAIN_TIMER_MAP(CVisionBm, CBaseVision)
-	ON_TIMER(200000, &CBaseVision::SendHeartMsg)
+	ON_TIMER(200000, false, &CBaseVision::SendHeartMsg)
 END_TIMER_MAP()
 
 DEFINE_CREATE_INSTANCE(CVisionBm)

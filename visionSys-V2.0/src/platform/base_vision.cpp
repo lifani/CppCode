@@ -40,7 +40,7 @@ const VISION_TIMERMAP* CBaseVision::GetThisTimerMap()
 {
 	static const VISION_TIMERMAP_ENTRY _timerEntries[] = 
 	{
-		{0, (VISION_PTIMER)0}
+		{0, false, (VISION_PTIMER)0}
 	};
 	
 	static const VISION_TIMERMAP timerMap = 
@@ -56,16 +56,21 @@ CBaseVision::CBaseVision(const char* ppname, const char* pname)
 : m_pname(pname)
 , m_pid(0)
 , m_code(0)
+, m_wTime(1)
 , m_ppname(ppname)
 , m_ppid(0)
 , m_strCwd("")
 , m_bRunning(true)
 , m_bTimerRunning(true)
 {
+	pthread_mutex_init(&m_lock, NULL);
+	pthread_cond_init(&m_ready, NULL);
 }
 
 CBaseVision::~CBaseVision()
 {
+	pthread_mutex_destroy(&m_lock);
+	pthread_cond_destroy(&m_ready);
 }
 
 /************************************
@@ -402,6 +407,20 @@ void CBaseVision::OutLog(VISION_MSG* pMsg)
 ************************************/
 void CBaseVision::ReqTimer(VISION_TIMER* pTimer)
 {
+	if (pTimer->bWait)
+	{
+		pthread_mutex_lock(&m_lock);
+		while(true)
+		{
+			pthread_cond_wait(&m_ready, &m_lock);
+			break;
+		}
+		
+		pthread_mutex_unlock(&m_lock);
+		
+		USleep(m_wTime);
+	}
+
 	while (IsTimerRunning())
 	{
 		// 定时
@@ -482,6 +501,7 @@ void CBaseVision::SetTimer()
 			pTimer->timeusec = pEntry->timeusec;
 			pTimer->signo = signo++;
 			pTimer->pfn = pEntry->pfn;
+			pTimer->bWait = pEntry->bWait;
 			
 			// 首先启动定时器响应线程
 			if (pthread_create(&(pTimer->res_tid), NULL, StartResTimer, (void*)pTimer) != 0)
@@ -584,5 +604,10 @@ void CBaseVision::USleep(unsigned int usec)
 void CBaseVision::SetStatusCode(int code)
 {
 	m_code = code;
+}
+
+void CBaseVision::NoticeTimer()
+{
+	pthread_cond_broadcast(&m_ready);
 }
 

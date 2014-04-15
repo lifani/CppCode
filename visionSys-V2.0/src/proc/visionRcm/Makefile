@@ -4,9 +4,8 @@ OBJECTS = visionRcm.o
 
 CFLAGS = -g -rdynamic -Wall -I../../../include -I../../../third -I../../../third/can/include  -I../../../third/canutils-4.0.6/include
 
-LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -L../../../third/can/lib -lplatform -lmt -lxml -llog  -lsocketcan -lcan -lsbus -lpthread -lrt
+LDFLAGS = -Wl,-rpath,./ -Wl,-rpath,./opencv/lib -L../../../output/lib -L../../../output -L../../../third/opencv/lib -L../../../third/can/lib -lplatform -lmt -lxml -llog -lbm -lsocketcan -lcan -lsbus -lopencv_core  -lopencv_imgproc -lopencv_highgui -lpthread -lrt
 
-#LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -lplatform -lmt -lxml -lpthread -lrt
 
 CXX = arm-linux-g++
 

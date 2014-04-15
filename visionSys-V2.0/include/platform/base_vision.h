@@ -52,11 +52,11 @@ const VISION_TIMERMAP* theClass::GetThisTimerMap() \
 	static const VISION_TIMERMAP_ENTRY _timerEntries[] = \
 	{ \
 
-#define ON_TIMER(timeusec, memberFunc) \
-		{timeusec, static_cast<VISION_PTIMER>(memberFunc)}, \
+#define ON_TIMER(timeusec, bWait, memberFunc) \
+		{timeusec, bWait, static_cast<VISION_PTIMER>(memberFunc)}, \
 	
 #define END_TIMER_MAP() \
-		{0, (VISION_PTIMER)0} \
+		{0, false, (VISION_PTIMER)0} \
 	}; \
 	static const VISION_TIMERMAP timerMap = \
 	{ &TheBaseClass::GetThisTimerMap, &_timerEntries[0] }; \
@@ -160,6 +160,8 @@ protected :
 	
 	void SetStatusCode(int code);
 	
+	void NoticeTimer();
+	
 private :
 
 	void GetProcInfo();
@@ -179,6 +181,8 @@ protected :
 	pid_t m_pid;
 	int	m_code;
 	
+	int m_wTime;
+	
 	map<string, MSG_FUNC> m_mapMsgFunc;
 	map<int, PROC_INFO*> m_mapProcInfo;
 
@@ -195,6 +199,9 @@ private :
 	
 	bool m_bRunning;
 	bool m_bTimerRunning;
+	
+	pthread_mutex_t m_lock;
+	pthread_cond_t m_ready;
 };
 
 #endif

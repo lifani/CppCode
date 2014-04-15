@@ -23,7 +23,7 @@ CCanPacket::CCanPacket() : m_fd(0), m_key(0), m_bitrate(1000000), m_nContent(0),
 , m_rHdl((HANDLER)0)
 , m_wHdl((HANDLER)0)
 , m_388Queue(sizeof(MC), 10, 0)
-, m_imuQueue(sizeof(IMU_DATA), 30, 20)
+, m_imuQueue(sizeof(IMU_DATA), 10, 0)
 {
 	pthread_mutex_init(&m_lock, NULL);
 }
@@ -208,13 +208,13 @@ int CCanPacket::Initialize(int op)
 {	
 	m_mapProcHandler[0x388] = &CCanPacket::Process388;
 	m_mapProcHandler[0x109] = &CCanPacket::Process109;
-	m_mapProcHandler[0x108] = &CCanPacket::Process108;
+	//m_mapProcHandler[0x108] = &CCanPacket::Process108;
 	m_mapProcHandler[0x092] = &CCanPacket::Process092;
-	m_mapProcHandler[0x090] = &CCanPacket::Process090;
+	//m_mapProcHandler[0x090] = &CCanPacket::Process090;
 	
-	m_mapRdCanCtrl[0x090] = new C090CanCtrl;
+	//m_mapRdCanCtrl[0x090] = new C090CanCtrl;
 	m_mapRdCanCtrl[0x092] = new CNewProtocolCanCtrl;
-	m_mapRdCanCtrl[0x108] = new C108CanCtrl;
+	//m_mapRdCanCtrl[0x108] = new C108CanCtrl;
 	m_mapRdCanCtrl[0x109] = new CNewProtocolCanCtrl;
 	m_mapRdCanCtrl[0x388] = new C388CanCtrl;
 	
