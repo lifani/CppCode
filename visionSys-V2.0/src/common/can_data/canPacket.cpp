@@ -119,7 +119,6 @@ int CCanPacket::WriteFd()
 					usleep(2000);
 					continue;
 				}
-				
 				break;
 			}
 		}
@@ -167,7 +166,7 @@ void CCanPacket::SetContent(const char* ptr, int len)
 	}
 	
 	const CAN_SNT_DATA* pCanData = (CAN_SNT_DATA*)ptr;
-	
+
 	CAbstractCanCtrl* p = m_mapWrCanCtrl[pCanData->can_id];
 	if (NULL != p)
 	{
@@ -220,9 +219,11 @@ int CCanPacket::Initialize(int op)
 	
 	m_mapWrCanCtrl[0x095] = new CSndCanCtrl;
 	m_mapWrCanCtrl[0x608] = new CSndCanCtrl;
+	m_mapWrCanCtrl[0x609] = new CSndCanCtrl;
 	
 	m_mapWrCanCtrl[0x095]->Initialize(0x095, 0x1005);
 	m_mapWrCanCtrl[0x608]->Initialize(0x608, 0x100C);
+	m_mapWrCanCtrl[0x609]->Initialize(0x609, 0x100D);
 
 	m_imuQueue.Initialize();
 	m_388Queue.Initialize();

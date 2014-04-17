@@ -7,6 +7,7 @@ DATE	:	2014.1.2
 #include <mt/mt.h>
 #include <sys/wait.h>
 #include "monitor.h"
+#include "../common/can_data/CHF.h"
 
 #define LOG_TAG "BASE_VISION"
 
@@ -421,13 +422,27 @@ void CBaseVision::ReqTimer(VISION_TIMER* pTimer)
 		USleep(m_wTime);
 	}
 
+	unsigned int usec = pTimer->timeusec;
+	unsigned int delay = 0;
+	
+	struct timeval last_val;
+	struct timeval cur_val;
+	
+	gettimeofday(&last_val, NULL);
+	
 	while (IsTimerRunning())
 	{
 		// 定时
-		USleep(pTimer->timeusec);
+		USleep(usec);
 		
 		// 发送信号
 		pthread_kill(pTimer->res_tid, pTimer->signo);
+		
+		gettimeofday(&cur_val, NULL);
+		
+		delay = GetDelayTime(&last_val, &cur_val, pTimer->timeusec);
+		
+		usec = delay > 500 ? pTimer->timeusec - delay : pTimer->timeusec;
 	}
 }
 
@@ -611,3 +626,24 @@ void CBaseVision::NoticeTimer()
 	pthread_cond_broadcast(&m_ready);
 }
 
+void CBaseVision::SendCanData(int identify, int id, char* pData, size_t size)
+{
+	if (NULL == pData)
+	{
+		return;
+	}	
+
+	CAN_SNT_DATA tSntData;
+	
+	tSntData.can_id = id;
+	tSntData.data = pData;
+	
+	CHF::SetContent(identify, (char*)&tSntData, size);
+}
+
+unsigned CBaseVision::GetDelayTime(struct timeval* last_val, struct timeval* cur_val, unsigned dTime)
+{
+	unsigned int dt = (cur_val->tv_sec - last_val->tv_sec) * 1000000 + cur_val->tv_usec - last_val->tv_usec;
+	
+	return dt % dTime;
+}

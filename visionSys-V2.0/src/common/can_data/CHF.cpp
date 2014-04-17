@@ -63,6 +63,20 @@ int CHF::FD(ENUM_HF_TYPE type, int op)
 		
 		break;
 	}
+	case HF_CAN1:
+	{
+		pPacket = new CCanPacket;
+		if (NULL == pPacket)
+		{
+			return -1;
+		}
+		
+		fd = pPacket->FD("can1", op);
+		
+		g_ArrayPollFd[g_pos].events = POLLIN | POLLOUT;
+		
+		break;
+	}
 	case HF_COM:
 	{
 		pPacket = new CComPacket;

@@ -130,7 +130,7 @@ void CVisionDaemon::ProcessHeartMsg(VISION_MSG* pMsg)
 
 int CVisionDaemon::Initialize()
 {
-	m_can = CHF::FD(HF_CAN0);
+	m_can = CHF::FD(HF_CAN1);
 	if (-1 == m_can)
 	{
 		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);
@@ -203,10 +203,5 @@ void CVisionDaemon::SendAlarm()
 	
 	status.code = m_code;
 	
-	CAN_SNT_DATA tSndData;
-	
-	tSndData.can_id = 0x608;
-	tSndData.data = (char*)&status;
-	
-	CHF::SetContent(m_can, (char*)&tSndData, sizeof(VISION_STATUS));
+	SendCanData(m_can, 0x609, (char*)&status, sizeof(VISION_STATUS));
 }

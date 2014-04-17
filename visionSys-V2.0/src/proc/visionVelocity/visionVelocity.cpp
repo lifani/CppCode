@@ -71,13 +71,13 @@ int CVisionVelocity::ActiveImp()
 	}
 	
 	// 注册算法接口
-	//if (!init_vo("/cache", m_Num))
-	//{
-	//	SetStatusCode(ERR_PROC_UNINTIED);
+	if (!init_vo("/cache", m_Num))
+	{
+		SetStatusCode(ERR_PROC_UNINTIED);
 		
-	//	LOGE("vo init err.");
-	//	return -1;
-	//}
+		LOGE("vo init err.");
+		return -1;
+	}
 	
 	// 设置状态码
 	SetStatusCode(ERR_INTIALIZED);
@@ -140,8 +140,8 @@ void CVisionVelocity::ProcessMsg(VISION_MSG* pMsg)
 		//pImu->press = 0.0;
 		
 		// 测速算法接口
-		//run_vo(pMsg->data.ptr, m_pImu, 
-		//	(vo_info*)m_pVoInfo, (branch_info*)m_pBranchInfo, (vo_can_output*)m_pFeedBack);
+		run_vo(pMsg->data.ptr, m_pImu, 
+			(vo_info*)m_pVoInfo, (branch_info*)m_pBranchInfo, (vo_can_output*)m_pFeedBack);
 		
 		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)m_pFeedBack;
 		p->cnt = m_index++;

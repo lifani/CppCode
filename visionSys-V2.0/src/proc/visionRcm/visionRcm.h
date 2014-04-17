@@ -37,8 +37,6 @@ public :
 	
 	void SendVoData();
 	
-	void SendCanData(int identify, int id, char* pData, size_t size);
-	
 	int GetImu(VISION_MSG* pMsg, int beginPos, int offset);
 	
 	int GetDataFromFpga(VISION_MSG* pMsg, int beginPos, int offset);
@@ -101,6 +99,7 @@ private :
 	int m_fd;
 	int m_regFd;
 	int m_can0;
+	int m_can1;
 	int m_subs;
 	
 	int m_Sonar;

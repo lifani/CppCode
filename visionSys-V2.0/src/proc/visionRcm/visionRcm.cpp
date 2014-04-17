@@ -30,6 +30,7 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 , m_fd(0)
 , m_regFd(0)
 , m_can0(0)
+, m_can1(0)
 , m_subs(0)
 , m_Sonar(0)
 , m_Naza(0)
@@ -211,27 +212,12 @@ void CVisionRcm::SendVoData()
 {
 	CAN_VELOCITY_DATA data;
 	if (m_qCtrl.pop((char*)&data) == 0)
-	{	
+	{
 		OutTime(m_pf1);
 		SendCanData(m_can0, 0x095, (char*)&data, sizeof(CAN_VELOCITY_DATA));
 		
 		m_index++;
 	}
-}
-
-void CVisionRcm::SendCanData(int identify, int id, char* pData, size_t size)
-{
-	if (NULL == pData)
-	{
-		return;
-	}	
-
-	CAN_SNT_DATA tSntData;
-	
-	tSntData.can_id = id;
-	tSntData.data = pData;
-	
-	CHF::SetContent(identify, (char*)&tSntData, size);
 }
 
 int CVisionRcm::GetImu(VISION_MSG* pMsg, int beginPos, int offset)
@@ -308,7 +294,14 @@ int CVisionRcm::Initialize()
 	m_can0 = CHF::FD(HF_CAN0, m_Naza);
 	if (-1 == m_can0)
 	{
-		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);
+		LOGE("Get can0 interface err. %s : %d\n", __FILE__, __LINE__);
+		return -1;
+	}
+	
+	m_can1 = CHF::FD(HF_CAN1, m_Naza);
+	if (-1 == m_can1)
+	{
+		LOGE("Get can1 interface err. %s : %d\n", __FILE__, __LINE__);
 		return -1;
 	}
 	
@@ -866,7 +859,7 @@ void CVisionRcm::RunAlgTask()
 	// ‘À––±‹’œÀ„∑®
 	RunBm(&rec_info, szOut, len, alarm);
 	
-	SendCanData(m_can0, 0x608, szOut, len);
+	SendCanData(m_can1, 0x608, szOut, len);
 }
 
 #endif

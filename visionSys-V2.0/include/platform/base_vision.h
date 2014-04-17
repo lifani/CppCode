@@ -167,6 +167,7 @@ private :
 	void GetProcInfo();
 	
 	void InitMsgFunc();
+	unsigned GetDelayTime(struct timeval* last_val, struct timeval* cur_val, unsigned dTime);
 
 public :
 	
