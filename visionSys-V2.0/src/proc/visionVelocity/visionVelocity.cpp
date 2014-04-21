@@ -25,6 +25,7 @@ CVisionVelocity::CVisionVelocity(const char* ppname, const char* pname)
 , m_pImu(0)
 , m_pFeedBack(0)
 , m_pfImu(NULL)
+, m_pfTime(NULL)
 , m_queueCtrl(sizeof(IMU_DATA), 10, false)
 {
 	pthread_mutex_init(&m_lock, NULL);
@@ -71,16 +72,11 @@ int CVisionVelocity::ActiveImp()
 	}
 	
 	// 注册算法接口
-	//if (!init_vo("/cache", m_Num))
-	//{
-	//	SetStatusCode(ERR_PROC_UNINTIED);
-		
-	//	LOGE("vo init err.");
-	//	return -1;
-	//}
-	
-	// 设置状态码
-	SetStatusCode(ERR_INTIALIZED);
+	if (!init_vo("/cache", m_Num))
+	{
+		LOGE("vo init err.");
+		return -1;
+	}
 	
 	m_queueCtrl.Initialize();
 	
@@ -135,14 +131,10 @@ void CVisionVelocity::ProcessMsg(VISION_MSG* pMsg)
 		
 		IMU_DATA* pImu = (IMU_DATA*)m_pImu;
 		
-		//cout << pImu->press << " " << pImu->q0 << " " << pImu->q1 << " " << pImu->q2 << " " << pImu->q3 << endl;
-		
-		//pImu->press = 0.0;
-		
 		// 测速算法接口
-		//run_vo(pMsg->data.ptr, m_pImu, 
-		//	(vo_info*)m_pVoInfo, (branch_info*)m_pBranchInfo, (vo_can_output*)m_pFeedBack);
-		
+		run_vo(pMsg->data.ptr, m_pImu, 
+			(vo_info*)m_pVoInfo, (branch_info*)m_pBranchInfo, (vo_can_output*)m_pFeedBack);
+
 		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)m_pFeedBack;
 		p->cnt = m_index++;
 		

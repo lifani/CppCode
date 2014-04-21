@@ -23,7 +23,7 @@ CCanPacket::CCanPacket() : m_fd(0), m_key(0), m_bitrate(1000000), m_nContent(0),
 , m_rHdl((HANDLER)0)
 , m_wHdl((HANDLER)0)
 , m_388Queue(sizeof(MC), 10, 0)
-, m_imuQueue(sizeof(IMU_DATA), 10, 0)
+, m_imuQueue(sizeof(IMU_DATA), 30, 20)
 {
 	pthread_mutex_init(&m_lock, NULL);
 }
@@ -119,7 +119,6 @@ int CCanPacket::WriteFd()
 					usleep(2000);
 					continue;
 				}
-				
 				break;
 			}
 		}
@@ -159,7 +158,7 @@ void CCanPacket::GetContent(char* ptr, int* len)
 		len int	内容长度
 返回:	无
 ************************************/
-void CCanPacket::SetContent(const char* ptr, int len)
+void CCanPacket::SetContent(const char* ptr, int len, int cmd)
 {
 	if (NULL == ptr || 0 == len)
 	{
@@ -167,11 +166,11 @@ void CCanPacket::SetContent(const char* ptr, int len)
 	}
 	
 	const CAN_SNT_DATA* pCanData = (CAN_SNT_DATA*)ptr;
-	
+
 	CAbstractCanCtrl* p = m_mapWrCanCtrl[pCanData->can_id];
 	if (NULL != p)
 	{
-		if (-1 == p->SetContent(pCanData->data, len))
+		if (-1 == p->SetContent(pCanData->data, len, cmd))
 		{
 			LOGE("push data err, can id = %d\n", pCanData->can_id);
 		}
@@ -220,9 +219,11 @@ int CCanPacket::Initialize(int op)
 	
 	m_mapWrCanCtrl[0x095] = new CSndCanCtrl;
 	m_mapWrCanCtrl[0x608] = new CSndCanCtrl;
+	m_mapWrCanCtrl[0x609] = new CSndCanCtrl;
 	
 	m_mapWrCanCtrl[0x095]->Initialize(0x095, 0x1005);
-	m_mapWrCanCtrl[0x608]->Initialize(0x608, 0x100C);
+	m_mapWrCanCtrl[0x608]->Initialize(0x608, 0x100A);
+	m_mapWrCanCtrl[0x609]->Initialize(0x609, 0x100D);
 
 	m_imuQueue.Initialize();
 	m_388Queue.Initialize();
@@ -373,7 +374,7 @@ void CCanPacket::Process(struct can_frame* pFrame)
 			(this->*hdl)(pData, len);
 		}
 		
-		usleep(3000);
+		usleep(1000);
 	}
 }
 

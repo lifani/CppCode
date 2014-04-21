@@ -23,7 +23,7 @@ public :
 	
 	virtual void GetContent(char* ptr, int* len) = 0;
 	
-	virtual void SetContent(const char* ptr, int len) = 0;
+	virtual void SetContent(const char* ptr, int len, int cmd = 0) = 0;
 	
 	virtual HANDLER GetHandler(short event) = 0;
 };

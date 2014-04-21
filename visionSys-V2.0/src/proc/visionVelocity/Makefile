@@ -4,9 +4,8 @@ OBJECTS = visionVelocity.o
 
 CFLAGS = -g -rdynamic -Wall -I../../../include -I../../../third
 
-LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output  -lplatform -lvo -lmt -llog -lxml -lpthread -lrt
+LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -L../../../third/can/lib -lplatform -lvo -lmt -llog -lxml -lcan -lsbus -lsocketcan -lpthread -lrt
 
-#LDFLAGS = -Wl,-rpath,./ -L../../../output/lib -L../../../output -lplatform -lmt -lxml -lpthread -lrt
 
 CXX = arm-linux-g++ 
 

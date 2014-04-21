@@ -54,7 +54,7 @@ public :
 	
 	static void GetContent(int fd, char* ptr, int* len);
 	
-	static void SetContent(int fd, const char* ptr, int len);
+	static void SetContent(int fd, const char* ptr, int len, int cmd = 0);
 	
 	static void Destroy();
 	

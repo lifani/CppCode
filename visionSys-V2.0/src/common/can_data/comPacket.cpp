@@ -88,7 +88,7 @@ void CComPacket::GetContent(char* ptr, int* len)
 	return;
 }
 
-void CComPacket::SetContent(const char* ptr, int len)
+void CComPacket::SetContent(const char* ptr, int len, int cmd)
 {
 	return;
 }

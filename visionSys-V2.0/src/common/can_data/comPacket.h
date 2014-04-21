@@ -33,7 +33,7 @@ public :
 	
 	void GetContent(char* ptr, int* len);
 	
-	void SetContent(const char* ptr, int len);
+	void SetContent(const char* ptr, int len, int cmd = 0);
 	
 	HANDLER GetHandler(short event);
 	

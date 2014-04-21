@@ -1,7 +1,8 @@
 #ifndef __DATA_TYPE_H__
 #define __DATA_TYPE_H__
 
-//#define _RUN_SMALL_ALG_
+#define _RUN_SMALL_ALG_
+#define _DEBUG
 
 #define DEVICE_FILENAME 	"/dev/fpga"
 #define DEVICE_RBF			"/dev/fpga0"
@@ -40,10 +41,11 @@
 
 // err code
 
-#define ERR_INTIALIZED		0
+#define ERR_SYSTIME_OK		0
 
 #define ERR_FPGA_UNINITED	-2
 
+#define ERR_IMU_UNRECEIVE	-10
 
 #define ERR_PROC_UNINTIED	-20
 

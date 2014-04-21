@@ -43,7 +43,7 @@ int CVisionDaemon::ActiveImp()
 
 int CVisionDaemon::DeactiveImp()
 {
-	CHF::Destroy();
+	//CHF::Destroy();
 
 	return 0;
 }
@@ -104,7 +104,7 @@ void CVisionDaemon::Daemon()
 	pthread_mutex_unlock(&m_lock);
 	
 	// ÉÏ±¨×´Ì¬
-	SendAlarm();
+	//SendAlarm();
 }
 
 void CVisionDaemon::ProcessHeartMsg(VISION_MSG* pMsg)
@@ -130,7 +130,7 @@ void CVisionDaemon::ProcessHeartMsg(VISION_MSG* pMsg)
 
 int CVisionDaemon::Initialize()
 {
-	m_can = CHF::FD(HF_CAN0);
+	/*m_can = CHF::FD(HF_CAN1);
 	if (-1 == m_can)
 	{
 		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);
@@ -141,7 +141,7 @@ int CVisionDaemon::Initialize()
 	{
 		LOGE("CHF init err. %s : %d\n", __FILE__, __LINE__);
 		return -1;
-	}
+	}*/
 	
 	return 0;
 }
@@ -203,10 +203,5 @@ void CVisionDaemon::SendAlarm()
 	
 	status.code = m_code;
 	
-	CAN_SNT_DATA tSndData;
-	
-	tSndData.can_id = 0x608;
-	tSndData.data = (char*)&status;
-	
-	CHF::SetContent(m_can, (char*)&tSndData, sizeof(VISION_STATUS));
+	SendCanData(m_can, 0x609, (char*)&status, sizeof(VISION_STATUS));
 }

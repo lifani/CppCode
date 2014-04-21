@@ -30,6 +30,7 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 , m_fd(0)
 , m_regFd(0)
 , m_can0(0)
+, m_can1(0)
 , m_subs(0)
 , m_Sonar(0)
 , m_Naza(0)
@@ -48,6 +49,7 @@ CVisionRcm::CVisionRcm(const char* ppname, const char* pname)
 , m_pData(0)
 , m_qCtrl(sizeof(CAN_VELOCITY_DATA), 10, false)
 , m_work(false)
+, m_bImuErr(false)
 , m_index(0)
 , m_bFirst(true)
 {
@@ -68,9 +70,6 @@ int CVisionRcm::ActiveImp()
 	{
 		LOGE("Initialize fail. %s : %d\n", __FILE__, __LINE__);
 		
-		// 设置状态码
-		SetStatusCode(ERR_PROC_UNINTIED);
-		
 		return -1;
 	}
 
@@ -81,9 +80,6 @@ int CVisionRcm::ActiveImp()
 	REGISTER_MSG_FUNC("GetDataFromFpga", &CVisionRcm::GetDataFromFpga);
 	REGISTER_MSG_FUNC("GetImu", &CVisionRcm::GetImu);
 	REGISTER_MSG_FUNC("VO", &CVisionRcm::Prepare4Vo);
-	
-	// 设置状态码
-	SetStatusCode(ERR_INTIALIZED);
 	
 	LOGW("VisionRcm actived. %s : %d\n", __FILE__, __LINE__);
 	
@@ -126,18 +122,6 @@ int CVisionRcm::DeactiveImp()
 #ifdef _RUN_SMALL_ALG_
 	ReleseBm();
 #endif
-
-	if (NULL != m_pf0)
-	{
-		fclose(m_pf0);
-		m_pf0 = NULL;
-	}
-	
-	if (NULL != m_pf1)
-	{
-		fclose(m_pf1);
-		m_pf1 = NULL;
-	}
 	
 	LOGW("VisionRcm deactived. %s : %d\n", __FILE__, __LINE__);
 	
@@ -165,9 +149,7 @@ void CVisionRcm::TransData()
 			WriteFlg(t_fd);
 			continue;
 		}
-		
-		OutTime(m_pf0);
-		
+
 		if (m_bFirst)
 		{
 			// 通知Timer结束等待
@@ -184,6 +166,7 @@ void CVisionRcm::TransData()
 #endif
 		// 将轮询标志位置0
 		WriteFlg(t_fd);
+
 	}
 }
 
@@ -208,30 +191,13 @@ void CVisionRcm::ProcessVelocityMsg(VISION_MSG* pMsg)
 返回：	无 
 ************************************/
 void CVisionRcm::SendVoData()
-{
+{	
 	CAN_VELOCITY_DATA data;
+	
 	if (m_qCtrl.pop((char*)&data) == 0)
-	{	
-		OutTime(m_pf1);
-		SendCanData(m_can0, 0x095, (char*)&data, sizeof(CAN_VELOCITY_DATA));
-		
-		m_index++;
-	}
-}
-
-void CVisionRcm::SendCanData(int identify, int id, char* pData, size_t size)
-{
-	if (NULL == pData)
 	{
-		return;
-	}	
-
-	CAN_SNT_DATA tSntData;
-	
-	tSntData.can_id = id;
-	tSntData.data = pData;
-	
-	CHF::SetContent(identify, (char*)&tSntData, size);
+		SendCanData(m_can0, 0x095, (char*)&data, sizeof(CAN_VELOCITY_DATA));
+	}
 }
 
 int CVisionRcm::GetImu(VISION_MSG* pMsg, int beginPos, int offset)
@@ -308,7 +274,14 @@ int CVisionRcm::Initialize()
 	m_can0 = CHF::FD(HF_CAN0, m_Naza);
 	if (-1 == m_can0)
 	{
-		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);
+		LOGE("Get can0 interface err. %s : %d\n", __FILE__, __LINE__);
+		return -1;
+	}
+	
+	m_can1 = CHF::FD(HF_CAN1, m_Naza);
+	if (-1 == m_can1)
+	{
+		LOGE("Get can1 interface err. %s : %d\n", __FILE__, __LINE__);
 		return -1;
 	}
 	
@@ -373,15 +346,6 @@ int CVisionRcm::Initialize()
 	RegisterBm();
 
 #endif
-
-	m_pf0 = fopen("/data/time0.txt", "wb+");
-	m_pf1 = fopen("/data/time1.txt", "wb+");
-	
-	if (NULL == m_pf0 || NULL == m_pf1)
-	{
-		LOGE("open time file err.");
-		return -1;
-	}
 	
 	return 0;
 }
@@ -589,7 +553,7 @@ void CVisionRcm::GenerateMsg()
 			
 			pMsgTag = pMsgTag->next;
 		}
-		
+
 		if (0 == err && -1 == SendMsg(&msg))
 		{
 			LOGE("send msg %ld err. %s : %d\n", msg.id, __FILE__, __LINE__);
@@ -604,6 +568,9 @@ void CVisionRcm::GenerateMsg()
 ************************************/
 int CVisionRcm::Preprocess4Fpga()
 {
+	// 加载FPGA前，设置未初始化
+	SetStatusCode(ERR_FPGA_UNINITED);
+	
 	// 加载rbf配置文件
 	if (0 != WriteRbf())
 	{
@@ -624,6 +591,9 @@ int CVisionRcm::Preprocess4Fpga()
 	{
 		return -1;
 	}
+	
+	// 恢复状态
+	SetStatusCode(-ERR_FPGA_UNINITED);
 	
 	// 使能FPGA
 	EnableFPGA();
@@ -728,7 +698,7 @@ int CVisionRcm::WriteParameter()
 	
 	unsigned int hex = 0;
 	unsigned int *pHex[2] = {(unsigned int*)(m_regPtr + 0xC0)
-							, (unsigned int*)(m_regPtr + 0xC4)};
+		, (unsigned int*)(m_regPtr + 0xC4)};
 	
 	unsigned int i = 0;
 	while (EOF != fscanf(pf, "%x", &hex))
@@ -815,6 +785,24 @@ void CVisionRcm::GetImuFromCan()
 	// IMU
 	CHF::GetContent(m_can0, (char*)pImu, &len);
 	
+	// 判断四元素正确性
+	float q = pImu->q0 * pImu->q0 + pImu->q1 * pImu->q1 + pImu->q2 * pImu->q2 + pImu->q3 * pImu->q3;
+	if (q > 1.05 || q < 0.95)
+	{
+		// 未设置错误码时，需设置错误码
+		if (!m_bImuErr)
+		{
+			SetStatusCode(ERR_IMU_UNRECEIVE);
+			m_bImuErr = true;
+		}
+	}
+	else if (m_bImuErr)
+	{
+		// 未恢复时，需恢复
+		SetStatusCode(-ERR_IMU_UNRECEIVE);
+		m_bImuErr = false;
+	}
+	
 	// 超声波 
 	pImu->sonar = 0;
 	if (m_Sonar)
@@ -853,20 +841,19 @@ void CVisionRcm::GetImuFromCan()
 void CVisionRcm::RunAlgTask()
 {
 	// 避障算法任务
-	
 	RECTIFIED_IMG rec_info;
 	
 	// 准备避障数据
 	Prepare4Bm(&rec_info);
 	
 	char szOut[256] = {0};
-	unsigned len = 0;
+	int len = 0;
 	unsigned alarm = 0;
 	
 	// 运行避障算法
 	RunBm(&rec_info, szOut, len, alarm);
 	
-	SendCanData(m_can0, 0x608, szOut, len);
+	SendCanData(m_can1, 0x608, szOut, len);
 }
 
 #endif

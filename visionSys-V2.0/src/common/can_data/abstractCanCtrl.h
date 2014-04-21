@@ -234,7 +234,7 @@ public :
 	
 	virtual int GetContent(char*& ptr);
 	
-	virtual int SetContent(char* ptr, int len);
+	virtual int SetContent(char* ptr, int len, int cmd = 0);
 	
 	virtual bool CheckHead(char* ptr, int len);
 	

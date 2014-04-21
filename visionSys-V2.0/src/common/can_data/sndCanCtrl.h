@@ -22,7 +22,7 @@ public :
 	
 	virtual int Process(struct can_frame* pFrame);
 	
-	virtual int SetContent(char* ptr, int len);
+	virtual int SetContent(char* ptr, int len, int cmd = 0);
 
 protected :
 

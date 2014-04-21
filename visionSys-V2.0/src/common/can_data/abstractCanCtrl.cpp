@@ -95,7 +95,7 @@ int CAbstractCanCtrl::GetContent(char*& ptr)
 		len int 内容长度
 返回：	成功 0， 失败 -1
 ************************************/
-int CAbstractCanCtrl::SetContent(char* ptr, int len)
+int CAbstractCanCtrl::SetContent(char* ptr, int len, int cmd)
 {
 	return 0;
 }

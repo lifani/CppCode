@@ -162,11 +162,19 @@ protected :
 	
 	void NoticeTimer();
 	
+	void SendCanData(int identify, int id, char* pData, size_t size);
+	
 private :
 
 	void GetProcInfo();
 	
 	void InitMsgFunc();
+	
+	unsigned GetDelayTime(struct timeval* last_val, struct timeval* cur_val, unsigned dTime);
+	
+	void SetErr(int err);
+	
+	void RecoverErr(int err);
 
 public :
 	
@@ -191,6 +199,7 @@ private :
 	vector<THREAD_ENTRY> m_vThreadEntry;
 	vector<string> m_vLog;
 	vector<VISION_TIMER*> m_vTimer;
+	set<int> m_setErr;
 	
 	string m_ppname;
 	pid_t m_ppid;
@@ -202,6 +211,8 @@ private :
 	
 	pthread_mutex_t m_lock;
 	pthread_cond_t m_ready;
+	
+	pthread_mutex_t m_errLock;
 };
 
 #endif

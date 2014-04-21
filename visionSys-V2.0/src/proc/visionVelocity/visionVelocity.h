@@ -51,11 +51,15 @@ private :
 	char* m_pBranchInfo;
 	
 	FILE* m_pfImu;
+	FILE* m_pfTime;
 	
 	pthread_mutex_t m_lock;
 	pthread_cond_t m_ready;
 	
 	CQueueCtrl m_queueCtrl;
+	
+	struct timeval start_time;
+	struct timeval end_time;
 };
 
 #endif

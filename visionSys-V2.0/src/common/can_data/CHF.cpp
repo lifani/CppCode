@@ -63,6 +63,20 @@ int CHF::FD(ENUM_HF_TYPE type, int op)
 		
 		break;
 	}
+	case HF_CAN1:
+	{
+		pPacket = new CCanPacket;
+		if (NULL == pPacket)
+		{
+			return -1;
+		}
+		
+		fd = pPacket->FD("can1", op);
+		
+		g_ArrayPollFd[g_pos].events = POLLIN | POLLOUT;
+		
+		break;
+	}
 	case HF_COM:
 	{
 		pPacket = new CComPacket;
@@ -142,7 +156,7 @@ void CHF::GetContent(int fd, char* ptr, int* len)
 		len int 内容长度
 返回：	无
 ************************************/
-void CHF::SetContent(int fd, const char* ptr, int len)
+void CHF::SetContent(int fd, const char* ptr, int len, int cmd)
 {
 	if (NULL == ptr || 0 == len)
 	{
@@ -152,7 +166,7 @@ void CHF::SetContent(int fd, const char* ptr, int len)
 	CAbstractPacket* pPacket = NULL;
 	if (NULL != (pPacket = g_mapFdPacket[fd]))
 	{
-		pPacket->SetContent(ptr, len);
+		pPacket->SetContent(ptr, len, cmd);
 	}
 }
 
@@ -198,7 +212,7 @@ void* CHF::poll_run(void* arg)
 			}
 		}
 
-		int err = poll(g_ArrayPollFd, g_pos, 2);
+		int err = poll(g_ArrayPollFd, g_pos, -1);
 		if (err > 0)
 		{
 			g_uTaskNum = 0;

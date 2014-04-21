@@ -44,7 +44,5 @@ void CVisionBm::ProcessMsg(VISION_MSG* pMsg)
 	{
 		unsigned int cnt0 = *(unsigned int*)(pMsg->data.ptr);
 		unsigned int cnt1 = *(unsigned int*)(pMsg->data.ptr + MAX_CLOUD_SIZE);
-		
-		cout << "### " << cnt0 << "	" << cnt1 << endl;
 	}
 }

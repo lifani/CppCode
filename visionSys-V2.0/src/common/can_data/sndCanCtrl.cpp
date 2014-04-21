@@ -57,7 +57,7 @@ int CSndCanCtrl::Process(struct can_frame* pFrame)
 	return pFrame->can_dlc;
 }
 
-int CSndCanCtrl::SetContent(char* ptr, int len)
+int CSndCanCtrl::SetContent(char* ptr, int len, int cmd)
 {
 	if (NULL == ptr || 0 == len)
 	{
@@ -74,7 +74,7 @@ int CSndCanCtrl::SetContent(char* ptr, int len)
 	*pLen = uLen;
 
 	unsigned short *pCmd = (unsigned short*)(sndData.szData + 4);
-	*pCmd = m_cmdCode;
+	*pCmd = cmd == 0 ? m_cmdCode : cmd;
 	
 	memcpy(sndData.szData + 6, ptr, len);
 	

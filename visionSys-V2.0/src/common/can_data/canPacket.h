@@ -30,7 +30,7 @@ public :
 	
 	virtual void GetContent(char* ptr, int* len);
 	
-	virtual void SetContent(const char* ptr, int len);
+	virtual void SetContent(const char* ptr, int len, int cmd = 0);
 	
 	virtual HANDLER GetHandler(short event); 
 	

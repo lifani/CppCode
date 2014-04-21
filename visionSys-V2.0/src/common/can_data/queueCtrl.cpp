@@ -64,11 +64,6 @@ int CCanQueueCtrl::push(char* ptr)
 		return -1;
 	}
 	
-	if (m_cnt == m_maxCnt)
-	{
-		return -1;
-	}
-	
 	pthread_mutex_lock(&m_lock);
 	
 	memcpy(m_ptr + m_storePos, ptr, m_size);
@@ -88,7 +83,10 @@ int CCanQueueCtrl::push(char* ptr)
 		m_storePos = 0;
 	}
 	
-	++m_cnt;
+	if (m_cnt < m_maxCnt)
+	{
+		m_cnt++;
+	}
 	
 	pthread_mutex_unlock(&m_lock);
 	
