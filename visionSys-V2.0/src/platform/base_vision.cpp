@@ -660,6 +660,7 @@ unsigned CBaseVision::GetDelayTime(struct timeval* last_val, struct timeval* cur
 	
 	return dt % dTime;
 }
+<<<<<<< HEAD
 
 void CBaseVision::SetErr(int err)
 {
@@ -690,3 +691,5 @@ void CBaseVision::RecoverErr(int err)
 	pthread_mutex_unlock(&m_errLock);
 }
 
+=======
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804

@@ -196,6 +196,10 @@ void CVisionRcm::SendVoData()
 	
 	if (m_qCtrl.pop((char*)&data) == 0)
 	{
+<<<<<<< HEAD
+=======
+		OutTime(m_pf1);
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804
 		SendCanData(m_can0, 0x095, (char*)&data, sizeof(CAN_VELOCITY_DATA));
 	}
 }

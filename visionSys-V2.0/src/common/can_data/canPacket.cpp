@@ -222,7 +222,11 @@ int CCanPacket::Initialize(int op)
 	m_mapWrCanCtrl[0x609] = new CSndCanCtrl;
 	
 	m_mapWrCanCtrl[0x095]->Initialize(0x095, 0x1005);
+<<<<<<< HEAD
 	m_mapWrCanCtrl[0x608]->Initialize(0x608, 0x100A);
+=======
+	m_mapWrCanCtrl[0x608]->Initialize(0x608, 0x100C);
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804
 	m_mapWrCanCtrl[0x609]->Initialize(0x609, 0x100D);
 
 	m_imuQueue.Initialize();

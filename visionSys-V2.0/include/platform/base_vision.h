@@ -169,12 +169,16 @@ private :
 	void GetProcInfo();
 	
 	void InitMsgFunc();
+<<<<<<< HEAD
 	
 	unsigned GetDelayTime(struct timeval* last_val, struct timeval* cur_val, unsigned dTime);
 	
 	void SetErr(int err);
 	
 	void RecoverErr(int err);
+=======
+	unsigned GetDelayTime(struct timeval* last_val, struct timeval* cur_val, unsigned dTime);
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804
 
 public :
 	

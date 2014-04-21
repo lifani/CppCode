@@ -130,7 +130,11 @@ void CVisionDaemon::ProcessHeartMsg(VISION_MSG* pMsg)
 
 int CVisionDaemon::Initialize()
 {
+<<<<<<< HEAD
 	/*m_can = CHF::FD(HF_CAN1);
+=======
+	m_can = CHF::FD(HF_CAN1);
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804
 	if (-1 == m_can)
 	{
 		LOGE("Get can interface err. %s : %d\n", __FILE__, __LINE__);

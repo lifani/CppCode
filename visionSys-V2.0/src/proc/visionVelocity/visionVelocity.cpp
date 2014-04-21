@@ -74,9 +74,20 @@ int CVisionVelocity::ActiveImp()
 	// 注册算法接口
 	if (!init_vo("/cache", m_Num))
 	{
+<<<<<<< HEAD
 		LOGE("vo init err.");
 		return -1;
 	}
+=======
+		SetStatusCode(ERR_PROC_UNINTIED);
+		
+		LOGE("vo init err.");
+		return -1;
+	}
+	
+	// 设置状态码
+	SetStatusCode(ERR_INTIALIZED);
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804
 	
 	m_queueCtrl.Initialize();
 	
@@ -134,7 +145,11 @@ void CVisionVelocity::ProcessMsg(VISION_MSG* pMsg)
 		// 测速算法接口
 		run_vo(pMsg->data.ptr, m_pImu, 
 			(vo_info*)m_pVoInfo, (branch_info*)m_pBranchInfo, (vo_can_output*)m_pFeedBack);
+<<<<<<< HEAD
 
+=======
+		
+>>>>>>> a840495036cc735b87d7e332d3869cf91ab10804
 		CAN_VELOCITY_DATA* p = (CAN_VELOCITY_DATA*)m_pFeedBack;
 		p->cnt = m_index++;
 		
